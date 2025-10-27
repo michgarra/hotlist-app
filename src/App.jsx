@@ -61,6 +61,7 @@ export default function HotlistApp() {
   const [tempFriends, setTempFriends] = useState([]);
   const [tempFriendInput, setTempFriendInput] = useState('');
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+  const [selectedMovieDetails, setSelectedMovieDetails] = useState(null);
 
   useEffect(() => {
     // Load all saved data from localStorage
@@ -480,6 +481,127 @@ export default function HotlistApp() {
         </div>
       )}
 
+      {/* Movie Details Modal */}
+      {selectedMovieDetails && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">{selectedMovieDetails.title}</h2>
+              <button 
+                onClick={() => setSelectedMovieDetails(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex gap-6 mb-6">
+              {/* Poster */}
+              {selectedMovieDetails.poster && (
+                <img 
+                  src={selectedMovieDetails.poster}
+                  alt={selectedMovieDetails.title}
+                  className="w-40 h-60 object-cover rounded-lg shadow-lg flex-shrink-0"
+                />
+              )}
+              
+              {/* Details */}
+              <div className="flex-1 space-y-3">
+                <div>
+                  <span className="text-sm text-gray-500">Genre</span>
+                  <p className="font-medium">{selectedMovieDetails.genre}</p>
+                </div>
+                
+                <div>
+                  <span className="text-sm text-gray-500">Streaming</span>
+                  <p className="font-medium">{selectedMovieDetails.streaming}</p>
+                </div>
+                
+                <div>
+                  <span className="text-sm text-gray-500">Recommended by</span>
+                  <p className="font-medium text-orange-500">{selectedMovieDetails.friend}</p>
+                </div>
+                
+                <div>
+                  <span className="text-sm text-gray-500">IMDB Rating</span>
+                  <p className="font-medium">⭐ {selectedMovieDetails.imdbRating}</p>
+                </div>
+                
+                <div>
+                  <span className="text-sm text-gray-500">Rotten Tomatoes</span>
+                  <p className="font-medium">🍅 {selectedMovieDetails.rtRating}%</p>
+                </div>
+                
+                {selectedMovieDetails.myRating > 0 && (
+                  <div>
+                    <span className="text-sm text-gray-500">Your Rating</span>
+                    <p className="font-medium flex items-center gap-2">
+                      <Flame className="w-5 h-5 text-orange-500 fill-orange-500" />
+                      {selectedMovieDetails.myRating} / 5
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Note */}
+            {selectedMovieDetails.note && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-500 block mb-1">Note</span>
+                <p className="text-gray-700 italic">"{selectedMovieDetails.note}"</p>
+              </div>
+            )}
+
+            {/* Status Buttons */}
+            <div className="mb-4">
+              <span className="text-sm text-gray-500 block mb-2">Status</span>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_OPTIONS.map(status => (
+                  <button
+                    key={status.value}
+                    onClick={() => {
+                      updateMovieStatus(selectedMovieDetails.id, status.value);
+                      setSelectedMovieDetails({...selectedMovieDetails, status: status.value});
+                    }}
+                    className={`px-4 py-2 rounded-full text-sm font-medium ${
+                      selectedMovieDetails.status === status.value
+                        ? `${status.color} text-white`
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  shareMovie(selectedMovieDetails);
+                }}
+                className="flex-1 py-3 bg-green-500 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-green-600"
+              >
+                <Share2 className="w-5 h-5" />
+                Share on WhatsApp
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Delete "${selectedMovieDetails.title}"?`)) {
+                    deleteMovie(selectedMovieDetails.id);
+                    setSelectedMovieDetails(null);
+                  }
+                }}
+                className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-2xl mx-auto p-4 pb-24">
         <div className="mb-4">
@@ -511,24 +633,32 @@ export default function HotlistApp() {
           {filteredMovies.map((movie) => (
             <div key={movie.id} className="p-4 hover:bg-gray-50">
               <div className="flex items-start gap-3">
-                {/* Movie Poster */}
-                {movie.poster && (
-                  <img 
-                    src={movie.poster}
-                    alt={movie.title}
-                    className="w-16 h-24 object-cover rounded flex-shrink-0"
-                  />
-                )}
-                {!movie.poster && (
-                  <div className="w-16 h-24 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center">
-                    <Flame className="w-8 h-8 text-gray-400" />
-                  </div>
-                )}
+                {/* Movie Poster - Clickable */}
+                <div 
+                  onClick={() => setSelectedMovieDetails(movie)}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                  {movie.poster && (
+                    <img 
+                      src={movie.poster}
+                      alt={movie.title}
+                      className="w-16 h-24 object-cover rounded flex-shrink-0"
+                    />
+                  )}
+                  {!movie.poster && (
+                    <div className="w-16 h-24 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center">
+                      <Flame className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
                 
-                {/* Movie Details */}
-                <div className="flex-1 min-w-0">
+                {/* Movie Details - Clickable */}
+                <div 
+                  className="flex-1 min-w-0 cursor-pointer"
+                  onClick={() => setSelectedMovieDetails(movie)}
+                >
                   <div className="flex items-baseline gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-gray-900">{movie.title}</h3>
+                    <h3 className="font-bold text-gray-900 hover:text-orange-500 transition-colors">{movie.title}</h3>
                     <span className="text-sm text-gray-600">{movie.streaming}</span>
                     <span className="text-sm text-gray-600">
                       {ratingPreference === 'imdb' ? movie.imdbRating : movie.rtRating}
@@ -543,13 +673,16 @@ export default function HotlistApp() {
                   </div>
                   <div className="text-sm text-gray-600 mb-2">{movie.genre}</div>
                   {movie.note && (
-                    <p className="text-sm text-gray-600 italic mb-3">{movie.note}</p>
+                    <p className="text-sm text-gray-600 italic mb-3 line-clamp-2">{movie.note}</p>
                   )}
                   <div className="flex flex-wrap gap-2">
                     {STATUS_OPTIONS.map(status => (
                       <button
                         key={status.value}
-                        onClick={() => updateMovieStatus(movie.id, status.value)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateMovieStatus(movie.id, status.value);
+                        }}
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           movie.status === status.value
                             ? `${status.color} text-white`
@@ -565,14 +698,20 @@ export default function HotlistApp() {
                 {/* Action Buttons */}
                 <div className="flex flex-col gap-2 flex-shrink-0">
                   <button
-                    onClick={() => shareMovie(movie)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      shareMovie(movie);
+                    }}
                     className="text-gray-400 hover:text-green-500 p-1 transition-colors"
                     title="Share on WhatsApp"
                   >
                     <Share2 className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => deleteMovie(movie.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteMovie(movie.id);
+                    }}
                     className="text-gray-400 hover:text-red-500 p-1 transition-colors"
                     title="Delete"
                   >
