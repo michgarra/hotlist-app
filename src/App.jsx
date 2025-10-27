@@ -234,7 +234,10 @@ export default function HotlistApp() {
       status: 'want',
       myRating: 0,
       addedDate: new Date().toISOString(),
-      mediaType: movieData.media_type
+      mediaType: movieData.media_type,
+      overview: movieData.overview || '',
+      cast: movieData.cast || [],
+      director: movieData.director || ''
     };
     
     setMovies([newMovie, ...movies]);
@@ -522,6 +525,20 @@ export default function HotlistApp() {
                   <p className="font-medium text-orange-500">{selectedMovieDetails.friend}</p>
                 </div>
                 
+                {selectedMovieDetails.director && (
+                  <div>
+                    <span className="text-sm text-gray-500">Director</span>
+                    <p className="font-medium">{selectedMovieDetails.director}</p>
+                  </div>
+                )}
+                
+                {selectedMovieDetails.cast && selectedMovieDetails.cast.length > 0 && (
+                  <div>
+                    <span className="text-sm text-gray-500">Cast</span>
+                    <p className="font-medium text-sm">{selectedMovieDetails.cast.join(', ')}</p>
+                  </div>
+                )}
+                
                 <div>
                   <span className="text-sm text-gray-500">IMDB Rating</span>
                   <p className="font-medium">⭐ {selectedMovieDetails.imdbRating}</p>
@@ -544,10 +561,18 @@ export default function HotlistApp() {
               </div>
             </div>
 
+            {/* Synopsis */}
+            {selectedMovieDetails.overview && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-500 block mb-2 font-medium">Synopsis</span>
+                <p className="text-gray-700 leading-relaxed">{selectedMovieDetails.overview}</p>
+              </div>
+            )}
+
             {/* Note */}
             {selectedMovieDetails.note && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-500 block mb-1">Note</span>
+              <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
+                <span className="text-sm text-orange-600 block mb-1 font-medium">Your Note</span>
                 <p className="text-gray-700 italic">"{selectedMovieDetails.note}"</p>
               </div>
             )}
@@ -1027,9 +1052,51 @@ function AddMovieForm({ movie, friends, onAdd, onAddFriend }) {
   const [expanded, setExpanded] = useState(false);
   const [showNewFriendInput, setShowNewFriendInput] = useState(false);
   const [newFriendName, setNewFriendName] = useState('');
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  const handleSubmit = () => {
-    onAdd(movie, selectedFriend || 'Me', note, streaming);
+  const fetchMovieDetails = async (movieId, mediaType) => {
+    setIsLoadingDetails(true);
+    try {
+      const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
+      const response = await fetch(
+        `${TMDB_BASE_URL}/${endpoint}/${movieId}?api_key=${TMDB_API_KEY}&append_to_response=credits`
+      );
+      
+      if (!response.ok) {
+        return { cast: [], director: '', overview: movie.overview || '' };
+      }
+      
+      const data = await response.json();
+      
+      // Get cast (top 5)
+      const cast = data.credits?.cast?.slice(0, 5).map(person => person.name) || [];
+      
+      // Get director (for movies) or creator (for TV shows)
+      let director = '';
+      if (mediaType === 'movie') {
+        const directorObj = data.credits?.crew?.find(person => person.job === 'Director');
+        director = directorObj?.name || '';
+      } else {
+        director = data.created_by?.[0]?.name || '';
+      }
+      
+      return {
+        cast,
+        director,
+        overview: data.overview || movie.overview || ''
+      };
+    } catch (error) {
+      console.error('Error fetching movie details:', error);
+      return { cast: [], director: '', overview: movie.overview || '' };
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const details = await fetchMovieDetails(movie.id, movie.media_type);
+    const enrichedMovie = { ...movie, ...details };
+    onAdd(enrichedMovie, selectedFriend || 'Me', note, streaming);
     setShowNewFriendInput(false);
     setNewFriendName('');
   };
@@ -1146,10 +1213,20 @@ function AddMovieForm({ movie, friends, onAdd, onAddFriend }) {
           </div>
           <button
             onClick={handleSubmit}
-            className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-orange-600"
+            disabled={isLoadingDetails}
+            className="w-full py-3 bg-orange-500 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Check className="w-5 h-5" />
-            Add to HOTLIST
+            {isLoadingDetails ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Loading details...
+              </>
+            ) : (
+              <>
+                <Check className="w-5 h-5" />
+                Add to HOTLIST
+              </>
+            )}
           </button>
         </div>
       )}
