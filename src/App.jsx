@@ -562,13 +562,23 @@ export default function HotlistApp() {
                   </div>
                 </div>
                 
-                {/* Delete Button */}
-                <button
-                  onClick={() => deleteMovie(movie.id)}
-                  className="text-gray-400 hover:text-red-500 p-1 flex-shrink-0"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => shareMovie(movie)}
+                    className="text-gray-400 hover:text-green-500 p-1 transition-colors"
+                    title="Share on WhatsApp"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => deleteMovie(movie.id)}
+                    className="text-gray-400 hover:text-red-500 p-1 transition-colors"
+                    title="Delete"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
