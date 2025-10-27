@@ -622,6 +622,9 @@ export default function HotlistApp() {
                     movie={result}
                     friends={friends}
                     onAdd={addMovie}
+                    onAddFriend={(friendName) => {
+                      setFriends([...friends, { id: Date.now(), name: friendName }]);
+                    }}
                   />
                 ))}
               </div>
@@ -644,7 +647,7 @@ export default function HotlistApp() {
         <Plus className="w-7 h-7" />
       </button>
 
-      {/* ONBOARDING FLOW - NEW ADDITION */}
+      {/* ONBOARDING FLOW */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
           <div className="max-w-md w-full p-6">
@@ -847,24 +850,11 @@ export default function HotlistApp() {
                   </button>
                   <button
                     onClick={() => {
-                      // Save profile and friends
-                      const profileToSave = tempProfile;
-                      const friendsToSave = tempFriends;
-                      
-                      // Update state first
-                      setUserProfile(profileToSave);
-                      setFriends(friendsToSave);
-                      
-                      // Then save to localStorage
-                      localStorage.setItem('hotlist_profile', JSON.stringify(profileToSave));
-                      localStorage.setItem('hotlist_friends', JSON.stringify(friendsToSave));
+                      setUserProfile(tempProfile);
+                      setFriends(tempFriends);
+                      localStorage.setItem('hotlist_profile', JSON.stringify(tempProfile));
+                      localStorage.setItem('hotlist_friends', JSON.stringify(tempFriends));
                       localStorage.setItem('hotlist_onboarding_complete', 'true');
-                      
-                      // Debug logging
-                      console.log('✅ Saved profile:', profileToSave);
-                      console.log('✅ Saved friends:', friendsToSave);
-                      
-                      // Close onboarding
                       setShowOnboarding(false);
                     }}
                     className="flex-1 py-4 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors"
@@ -881,14 +871,38 @@ export default function HotlistApp() {
   );
 }
 
-function AddMovieForm({ movie, friends, onAdd }) {
+function AddMovieForm({ movie, friends, onAdd, onAddFriend }) {
   const [selectedFriend, setSelectedFriend] = useState('');
   const [note, setNote] = useState('');
   const [streaming, setStreaming] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [showNewFriendInput, setShowNewFriendInput] = useState(false);
+  const [newFriendName, setNewFriendName] = useState('');
 
   const handleSubmit = () => {
     onAdd(movie, selectedFriend || 'Me', note, streaming);
+    setShowNewFriendInput(false);
+    setNewFriendName('');
+  };
+
+  const handleFriendChange = (e) => {
+    const value = e.target.value;
+    if (value === '__ADD_NEW__') {
+      setShowNewFriendInput(true);
+      setSelectedFriend('');
+    } else {
+      setShowNewFriendInput(false);
+      setSelectedFriend(value);
+    }
+  };
+
+  const handleAddNewFriend = () => {
+    if (newFriendName.trim()) {
+      onAddFriend(newFriendName.trim());
+      setSelectedFriend(newFriendName.trim());
+      setNewFriendName('');
+      setShowNewFriendInput(false);
+    }
   };
 
   return (
@@ -920,16 +934,46 @@ function AddMovieForm({ movie, friends, onAdd }) {
         <div className="mt-4 space-y-3 border-t pt-3">
           <div>
             <label className="block text-sm font-medium mb-1">Recommended by</label>
-            <select
-              value={selectedFriend}
-              onChange={(e) => setSelectedFriend(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
-            >
-              <option value="">Me (self-added)</option>
-              {friends.map(friend => (
-                <option key={friend.id} value={friend.name}>{friend.name}</option>
-              ))}
-            </select>
+            {!showNewFriendInput ? (
+              <select
+                value={selectedFriend}
+                onChange={handleFriendChange}
+                className="w-full px-3 py-2 border rounded-lg"
+              >
+                <option value="">Me (self-added)</option>
+                {friends.map(friend => (
+                  <option key={friend.id} value={friend.name}>{friend.name}</option>
+                ))}
+                <option value="__ADD_NEW__">+ Add New Friend</option>
+              </select>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newFriendName}
+                  onChange={(e) => setNewFriendName(e.target.value)}
+                  placeholder="Friend's name"
+                  className="flex-1 px-3 py-2 border rounded-lg"
+                  autoFocus
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddNewFriend()}
+                />
+                <button
+                  onClick={handleAddNewFriend}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNewFriendInput(false);
+                    setNewFriendName('');
+                  }}
+                  className="px-4 py-2 bg-gray-200 rounded-lg font-medium hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Streaming Service</label>
