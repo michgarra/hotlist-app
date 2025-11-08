@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, User, Share2, Flame, Star, X, Check, Settings, GripVertical, Tv, Film } from 'lucide-react';
+import { Flame, Plus, X, Settings, User, Star, Share2, Check, Film, Tv, GripVertical } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -18,37 +18,17 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 const TMDB_API_KEY = 'af77d893efdba514a3f24f0048d46b91';
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
 const STATUS_OPTIONS = [
-  { value: 'want', label: 'Want to Watch', color: 'bg-blue-500' },
-  { value: 'interested', label: 'Interested', color: 'bg-purple-500' },
-  { value: 'watching', label: 'Watching', color: 'bg-yellow-500' },
-  { value: 'watched', label: 'Watched', color: 'bg-green-500' }
+  { value: 'want', label: 'Want to Watch', color: 'bg-blue-100 text-blue-700' },
+  { value: 'interested', label: 'Interested', color: 'bg-purple-100 text-purple-700' },
+  { value: 'watching', label: 'Watching', color: 'bg-green-100 text-green-700' },
+  { value: 'watched', label: 'Watched', color: 'bg-gray-100 text-gray-700' }
 ];
 
-const GENRE_MAP = {
-  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy',
-  80: 'Crime', 99: 'Documentary', 18: 'Drama', 10751: 'Family',
-  14: 'Fantasy', 36: 'History', 27: 'Horror', 10402: 'Music',
-  9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi', 10770: 'TV Movie',
-  53: 'Thriller', 10752: 'War', 37: 'Western', 10759: 'Action & Adventure',
-  10762: 'Kids', 10763: 'News', 10764: 'Reality', 10765: 'Sci-Fi & Fantasy',
-  10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
-};
-
-const STREAMING_SERVICES = [
-  'Netflix', 'Disney+', 'Amazon Prime', 'Apple TV+', 'HBO Max',
-  'Hulu', 'Paramount+', 'Peacock', 'Stan', 'Binge'
-];
-
-const AGE_GROUPS = [
-  '10-20', '20-30', '30-40', '40-50', '50-60', '60+'
-];
-
-// Sortable Movie/TV Card Component
-function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelete, onViewDetails, ratingPreference }) {
+// Sortable Movie Card Component
+function SortableMovieCard({ movie, ratingPreference, onStatusChange, onRate, onShare, onDelete, onCardClick, isDraggable }) {
   const {
     attributes,
     listeners,
@@ -56,7 +36,7 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id, disabled: !isDraggable });
+  } = useSortable({ id: movie.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -64,127 +44,100 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const currentStatus = STATUS_OPTIONS.find(s => s.value === item.status);
-  const displayRating = ratingPreference === 'tmdb' 
-    ? item.vote_average?.toFixed(1) 
-    : item.imdbRating;
-
-  // Determine display title and year
-  const title = item.title || item.name;
-  const releaseYear = item.release_date?.split('-')[0] || item.first_air_date?.split('-')[0];
-
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-    >
-      <div className="flex gap-3 p-3">
-        {/* Drag Handle - Only visible when draggable */}
+    <div ref={setNodeRef} style={style} className="bg-white border-b border-gray-200 hover:bg-gray-50">
+      <div className="p-4 flex items-start gap-3">
+        {/* Drag Handle - Only show if draggable */}
         {isDraggable && (
-          <div
-            {...attributes}
-            {...listeners}
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-start pt-1"
-          >
-            <GripVertical className="w-5 h-5" />
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing pt-1">
+            <GripVertical className="w-5 h-5 text-gray-400" />
           </div>
         )}
 
-        {/* Poster */}
-        <div className="flex-shrink-0">
-          {item.poster_path ? (
-            <img
-              src={`${TMDB_IMAGE_BASE}${item.poster_path}`}
-              alt={title}
-              className="w-20 h-28 object-cover rounded cursor-pointer"
-              onClick={() => onViewDetails(item)}
-            />
-          ) : (
-            <div className="w-20 h-28 bg-gray-200 rounded flex items-center justify-center cursor-pointer"
-                 onClick={() => onViewDetails(item)}>
-              {item.media_type === 'tv' ? (
-                <Tv className="w-8 h-8 text-gray-400" />
-              ) : (
-                <Film className="w-8 h-8 text-gray-400" />
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
+        {/* Movie/TV Poster */}
+        {movie.poster ? (
+          <img 
+            src={movie.poster}
+            alt={movie.title}
+            className="w-16 h-24 object-cover rounded flex-shrink-0 cursor-pointer"
+            onClick={() => onCardClick(movie)}
+          />
+        ) : (
+          <div 
+            className="w-16 h-24 bg-gray-200 rounded flex-shrink-0 flex items-center justify-center cursor-pointer"
+            onClick={() => onCardClick(movie)}
+          >
+            {movie.mediaType === 'tv' ? (
+              <Tv className="w-8 h-8 text-gray-400" />
+            ) : (
+              <Film className="w-8 h-8 text-gray-400" />
+            )}
+          </div>
+        )}
+        
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-2 mb-1">
-            <h3 
-              className="font-semibold text-gray-800 truncate cursor-pointer hover:text-orange-500 flex-1"
-              onClick={() => onViewDetails(item)}
-            >
-              {title}
-            </h3>
-            {item.media_type === 'tv' && (
-              <span className="flex-shrink-0 bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded">
-                TV
-              </span>
+          <div 
+            className="flex items-baseline gap-2 mb-1 flex-wrap cursor-pointer"
+            onClick={() => onCardClick(movie)}
+          >
+            <h3 className="font-bold text-gray-900">{movie.title}</h3>
+            {movie.mediaType === 'tv' && (
+              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">TV</span>
             )}
+            <span className="text-sm text-gray-600">{movie.streaming || '???'}</span>
+            <span className="text-sm text-gray-600">
+              {ratingPreference === 'imdb' ? movie.imdbRating : movie.rtRating}
+            </span>
+            <span className="text-sm text-orange-500 font-medium">({movie.friend})</span>
           </div>
-          <p className="text-sm text-gray-500 mb-1">{releaseYear}</p>
           
-          {/* Rating */}
-          <div className="flex items-center gap-1 mb-2">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium">
-              {displayRating || 'N/A'}
-            </span>
-            {item.imdbRating && (
-              <span className="text-xs text-gray-500 ml-1">
-                ({ratingPreference === 'tmdb' ? 'TMDB' : 'IMDb'})
-              </span>
+          <div className="text-sm text-gray-600 mb-2">
+            {movie.genre}
+            {movie.mediaType === 'tv' && movie.seasons && (
+              <span className="ml-2">• {movie.seasons} season{movie.seasons !== 1 ? 's' : ''}</span>
             )}
           </div>
-
-          {/* Genres */}
-          <div className="flex flex-wrap gap-1 mb-2">
-            {item.genre_ids?.slice(0, 2).map(genreId => (
-              <span key={genreId} className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                {GENRE_MAP[genreId]}
-              </span>
-            ))}
-          </div>
-
-          {/* Status Badge */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`text-xs px-2 py-1 rounded text-white ${currentStatus?.color}`}>
-              {currentStatus?.label}
-            </span>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-1 mt-2">
-            {STATUS_OPTIONS.filter(s => s.value !== item.status).map(status => (
+          
+          {movie.note && (
+            <p className="text-sm text-gray-600 italic mb-3">{movie.note}</p>
+          )}
+          
+          <div className="flex flex-wrap gap-2">
+            {STATUS_OPTIONS.map(status => (
               <button
                 key={status.value}
-                onClick={() => onUpdateStatus(item.id, status.value)}
-                className={`text-xs px-2 py-1 rounded ${status.color} text-white hover:opacity-80`}
+                onClick={() => onStatusChange(movie.id, status.value)}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  movie.status === status.value
+                    ? status.color
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
               >
                 {status.label}
               </button>
             ))}
-          </div>
-
-          {/* Share and Delete */}
-          <div className="flex gap-2 mt-2">
+            
+            {movie.status === 'watched' && movie.myRating && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-orange-50 rounded-full">
+                <span className="text-sm font-medium text-orange-600">
+                  {movie.myRating} 🔥
+                </span>
+              </div>
+            )}
+            
             <button
-              onClick={() => onShare(item)}
-              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              onClick={() => onShare(movie)}
+              className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1"
             >
               <Share2 className="w-3 h-3" />
               Share
             </button>
+            
             <button
-              onClick={() => onDelete(item.id)}
-              className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+              onClick={() => onDelete(movie.id)}
+              className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100"
             >
-              <X className="w-3 h-3" />
               Delete
             </button>
           </div>
@@ -194,26 +147,39 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
   );
 }
 
-// Main App Component
 function App() {
-  const [items, setItems] = useState([]);
+  // State
+  const [movies, setMovies] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [activeTab, setActiveTab] = useState('hotlist');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddMovie, setShowAddMovie] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showFriendsList, setShowFriendsList] = useState(false);
-  const [showRatingPreference, setShowRatingPreference] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [itemDetails, setItemDetails] = useState(null);
+  const [showRating, setShowRating] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [detailsMovie, setDetailsMovie] = useState(null);
+  const [ratingPreference, setRatingPreference] = useState('imdb');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [username, setUsername] = useState('');
-  const [selectedGenres, setSelectedGenres] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState('');
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [ratingPreference, setRatingPreference] = useState('tmdb');
+  const [newFriendName, setNewFriendName] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [userProfile, setUserProfile] = useState({ name: '', gender: '', ageGroup: '' });
+  const [tempProfile, setTempProfile] = useState({ name: '', gender: '', ageGroup: '' });
+  const [tempFriends, setTempFriends] = useState([]);
+  const [tempFriendInput, setTempFriendInput] = useState('');
+  const [tempServices, setTempServices] = useState([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Add movie form state
+  const [selectedResult, setSelectedResult] = useState(null);
+  const [selectedFriend, setSelectedFriend] = useState('');
+  const [newInlineFriend, setNewInlineFriend] = useState('');
+  const [showInlineFriendAdd, setShowInlineFriendAdd] = useState(false);
+  const [streaming, setStreaming] = useState('');
+  const [note, setNote] = useState('');
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -225,45 +191,47 @@ function App() {
 
   // Load data from localStorage
   useEffect(() => {
-    const savedItems = localStorage.getItem('hotlist-items');
-    const savedUsername = localStorage.getItem('hotlist-username');
-    const savedGenres = localStorage.getItem('hotlist-genres');
-    const savedServices = localStorage.getItem('hotlist-services');
-    const savedAgeGroup = localStorage.getItem('hotlist-agegroup');
-    const savedRatingPref = localStorage.getItem('hotlist-rating-preference');
-    const hasCompletedOnboarding = localStorage.getItem('hotlist-onboarding-complete');
+    const savedMovies = localStorage.getItem('hotlist_movies');
+    const savedFriends = localStorage.getItem('hotlist_friends');
+    const savedRatingPref = localStorage.getItem('hotlist_rating_pref');
+    const savedProfile = localStorage.getItem('hotlist_profile');
+    const onboardingComplete = localStorage.getItem('hotlist_onboarding_complete');
 
-    if (savedItems) setItems(JSON.parse(savedItems));
-    if (savedUsername) setUsername(savedUsername);
-    if (savedGenres) setSelectedGenres(JSON.parse(savedGenres));
-    if (savedServices) setSelectedServices(JSON.parse(savedServices));
-    if (savedAgeGroup) setSelectedAgeGroup(savedAgeGroup);
+    if (savedMovies) setMovies(JSON.parse(savedMovies));
+    if (savedFriends) setFriends(JSON.parse(savedFriends));
     if (savedRatingPref) setRatingPreference(savedRatingPref);
-    if (hasCompletedOnboarding) setShowOnboarding(false);
+    if (savedProfile) {
+      const profile = JSON.parse(savedProfile);
+      setUserProfile(profile);
+      setTempProfile(profile);
+    }
+
+    setShowOnboarding(!onboardingComplete);
+    setIsDataLoaded(true);
   }, []);
 
-  // Save items to localStorage whenever they change
+  // Save data to localStorage
   useEffect(() => {
-    localStorage.setItem('hotlist-items', JSON.stringify(items));
-  }, [items]);
-
-  // Handle drag end
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-
-    if (active.id !== over.id) {
-      setItems((currentItems) => {
-        const oldIndex = currentItems.findIndex((item) => item.id === active.id);
-        const newIndex = currentItems.findIndex((item) => item.id === over.id);
-        
-        return arrayMove(currentItems, oldIndex, newIndex);
-      });
+    if (isDataLoaded && movies.length > 0) {
+      localStorage.setItem('hotlist_movies', JSON.stringify(movies));
     }
-  };
+  }, [movies, isDataLoaded]);
 
-  // Search both movies and TV shows from TMDB
-  const searchContent = async (query) => {
-    if (!query.trim()) {
+  useEffect(() => {
+    if (isDataLoaded && friends.length > 0) {
+      localStorage.setItem('hotlist_friends', JSON.stringify(friends));
+    }
+  }, [friends, isDataLoaded]);
+
+  useEffect(() => {
+    if (isDataLoaded) {
+      localStorage.setItem('hotlist_rating_pref', ratingPreference);
+    }
+  }, [ratingPreference, isDataLoaded]);
+
+  // TMDB Multi-Search (Movies + TV Shows)
+  const searchTMDB = async (query) => {
+    if (query.length < 2) {
       setSearchResults([]);
       return;
     }
@@ -271,590 +239,158 @@ function App() {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`
+        `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`
       );
       const data = await response.json();
       
-      // Filter to only movies and TV shows
-      const filtered = (data.results || []).filter(
-        item => item.media_type === 'movie' || item.media_type === 'tv'
-      );
-      
-      setSearchResults(filtered);
+      const results = data.results
+        .filter(item => item.media_type === 'movie' || item.media_type === 'tv')
+        .map(item => ({
+          id: `${item.media_type}-${item.id}`,
+          tmdbId: item.id,
+          mediaType: item.media_type,
+          title: item.media_type === 'movie' ? item.title : item.name,
+          year: item.media_type === 'movie' 
+            ? item.release_date?.substring(0, 4) 
+            : item.first_air_date?.substring(0, 4),
+          poster: item.poster_path ? `${TMDB_IMAGE_BASE}${item.poster_path}` : null,
+          genre: item.genre_ids?.join(', ') || 'Unknown',
+          imdbRating: item.vote_average ? `⭐ ${item.vote_average.toFixed(1)}` : 'N/A',
+          rtRating: item.vote_average ? `🍅 ${Math.round(item.vote_average * 10)}%` : 'N/A',
+          overview: item.overview,
+          seasons: item.media_type === 'tv' ? item.number_of_seasons : null,
+        }));
+
+      setSearchResults(results);
     } catch (error) {
-      console.error('Error searching content:', error);
+      console.error('Error searching TMDB:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Fetch detailed info including IMDb rating
-  const fetchDetails = async (tmdbId, mediaType) => {
-    try {
-      const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
-      const response = await fetch(
-        `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=credits,external_ids`
-      );
-      const data = await response.json();
-      
-      // Try to get IMDb rating from OMDb API
-      let imdbRating = null;
-      if (data.imdb_id || data.external_ids?.imdb_id) {
-        try {
-          const imdbId = data.imdb_id || data.external_ids.imdb_id;
-          const omdbResponse = await fetch(
-            `https://www.omdbapi.com/?i=${imdbId}&apikey=5a69a918`
-          );
-          const omdbData = await omdbResponse.json();
-          if (omdbData.imdbRating && omdbData.imdbRating !== 'N/A') {
-            imdbRating = omdbData.imdbRating;
-          }
-        } catch (error) {
-          console.error('Error fetching IMDb rating:', error);
-        }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        searchTMDB(searchQuery);
+      } else {
+        setSearchResults([]);
       }
+    }, 300);
 
-      return { ...data, imdbRating };
-    } catch (error) {
-      console.error('Error fetching details:', error);
-      return null;
-    }
-  };
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // Add item to hotlist
-  const addItem = async (item) => {
-    const details = await fetchDetails(item.id, item.media_type);
-    
-    const newItem = {
-      id: `${item.media_type}-${item.id}`, // Unique ID combining type and TMDB ID
-      tmdbId: item.id,
-      media_type: item.media_type,
-      title: item.title,
-      name: item.name,
-      poster_path: item.poster_path,
-      release_date: item.release_date,
-      first_air_date: item.first_air_date,
-      genre_ids: item.genre_ids,
-      vote_average: item.vote_average,
-      imdbRating: details?.imdbRating,
+  // Handlers
+  const handleAddMovie = () => {
+    if (!selectedResult || !selectedFriend) return;
+
+    const newMovie = {
+      ...selectedResult,
+      friend: selectedFriend,
+      streaming: streaming || '???',
+      note: note,
       status: 'want',
-      addedAt: new Date().toISOString(),
-      cast: details?.credits?.cast?.slice(0, 5).map(c => c.name) || [],
-      director: item.media_type === 'movie' 
-        ? details?.credits?.crew?.find(c => c.job === 'Director')?.name || 'Unknown'
-        : details?.created_by?.[0]?.name || 'Unknown',
-      synopsis: details?.overview || item.overview || 'No synopsis available',
-      seasons: item.media_type === 'tv' ? details?.number_of_seasons : null,
-      episodes: item.media_type === 'tv' ? details?.number_of_episodes : null,
+      dateAdded: new Date().toISOString()
     };
 
-    setItems(prev => [newItem, ...prev]);
-    setShowAddModal(false);
+    setMovies([newMovie, ...movies]);
+    
+    // Reset form
+    setShowAddMovie(false);
+    setSelectedResult(null);
+    setSelectedFriend('');
+    setStreaming('');
+    setNote('');
     setSearchQuery('');
     setSearchResults([]);
+    setShowInlineFriendAdd(false);
+    setNewInlineFriend('');
   };
 
-  // Update status
-  const updateStatus = (itemId, newStatus) => {
-    setItems(prev =>
-      prev.map(item =>
-        item.id === itemId ? { ...item, status: newStatus } : item
-      )
-    );
-  };
-
-  // Delete item
-  const deleteItem = (itemId) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      setItems(prev => prev.filter(item => item.id !== itemId));
+  const handleInlineFriendAdd = () => {
+    if (newInlineFriend.trim()) {
+      const newFriend = { id: Date.now(), name: newInlineFriend.trim() };
+      setFriends([...friends, newFriend]);
+      setSelectedFriend(newFriend.name);
+      setNewInlineFriend('');
+      setShowInlineFriendAdd(false);
     }
   };
 
-  // Share item
-  const shareItem = (item) => {
-    const title = item.title || item.name;
-    const shareText = `Check out "${title}" on my HOTLIST! 🔥`;
-    if (navigator.share) {
-      navigator.share({
-        title: title,
-        text: shareText,
-      });
-    } else {
-      alert('Sharing not supported on this device');
-    }
-  };
-
-  // View details
-  const viewDetails = async (item) => {
-    setSelectedItem(item);
-    setShowDetailsModal(true);
-    
-    // Fetch full details if not already present
-    if (!item.cast || !item.director) {
-      const details = await fetchDetails(item.tmdbId, item.media_type);
-      if (details) {
-        setItemDetails(details);
+  const updateMovieStatus = (movieId, newStatus) => {
+    setMovies(movies.map(m => {
+      if (m.id === movieId) {
+        if (newStatus === 'watched') {
+          setSelectedMovie(m);
+          setShowRating(true);
+        }
+        return { ...m, status: newStatus };
       }
-    } else {
-      setItemDetails(item);
+      return m;
+    }));
+  };
+
+  const rateMovie = (rating) => {
+    if (selectedMovie) {
+      setMovies(movies.map(m => 
+        m.id === selectedMovie.id ? { ...m, myRating: rating } : m
+      ));
+      setShowRating(false);
+      setSelectedMovie(null);
     }
   };
 
-  // Complete onboarding
-  const completeOnboarding = () => {
-    localStorage.setItem('hotlist-username', username);
-    localStorage.setItem('hotlist-genres', JSON.stringify(selectedGenres));
-    localStorage.setItem('hotlist-services', JSON.stringify(selectedServices));
-    localStorage.setItem('hotlist-agegroup', selectedAgeGroup);
-    localStorage.setItem('hotlist-onboarding-complete', 'true');
-    setShowOnboarding(false);
+  const shareMovie = (movie) => {
+    const flames = '🔥'.repeat(Math.floor(movie.myRating || 0));
+    const mediaTypeLabel = movie.mediaType === 'tv' ? 'TV show' : 'movie';
+    const text = `Check out this ${mediaTypeLabel}: *${movie.title}* on ${movie.streaming}! ${flames}${movie.myRating ? ` (${movie.myRating}/5)` : ''} - Recommended by ${movie.friend}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
-  // Save rating preference
-  const saveRatingPreference = (preference) => {
-    setRatingPreference(preference);
-    localStorage.setItem('hotlist-rating-preference', preference);
-    setShowRatingPreference(false);
+  const addFriend = () => {
+    if (newFriendName.trim()) {
+      setFriends([...friends, { id: Date.now(), name: newFriendName.trim() }]);
+      setNewFriendName('');
+    }
   };
 
-  // Filter items by active tab
-  const filteredItems = activeTab === 'hotlist'
-    ? items.filter(m => m.status === 'want' || m.status === 'interested' || m.status === 'watching')
-    : items.filter(m => m.status === 'watched');
+  const deleteFriend = (friendId) => {
+    setFriends(friends.filter(f => f.id !== friendId));
+  };
 
-  // Get only hotlist items for drag and drop (maintain order)
-  const hotlistItems = items.filter(m => 
-    m.status === 'want' || m.status === 'interested' || m.status === 'watching'
-  );
+  const deleteMovie = (movieId) => {
+    setMovies(movies.filter(m => m.id !== movieId));
+  };
+
+  const handleCardClick = (movie) => {
+    setDetailsMovie(movie);
+    setShowDetails(true);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setMovies((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Filtered movies
+  const filteredMovies = activeTab === 'hotlist'
+    ? movies.filter(m => m.status === 'want' || m.status === 'interested' || m.status === 'watching')
+    : movies.filter(m => m.status === 'watched');
+
+  const movieIds = filteredMovies.map(m => m.id);
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Aptos, system-ui, sans-serif' }}>
-      {/* Onboarding Modal */}
-      {showOnboarding && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="text-center mb-6">
-              <Flame className="w-16 h-16 text-orange-500 mx-auto mb-3" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to HOTLIST!</h2>
-              <p className="text-gray-600">Let's personalize your experience</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  What's your name?
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Age Group
-                </label>
-                <select
-                  value={selectedAgeGroup}
-                  onChange={(e) => setSelectedAgeGroup(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Select age group</option>
-                  {AGE_GROUPS.map(age => (
-                    <option key={age} value={age}>{age}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Favorite Genres (select all that apply)
-                </label>
-                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 border border-gray-200 rounded-lg">
-                  {Object.entries(GENRE_MAP).map(([id, name]) => (
-                    <button
-                      key={id}
-                      onClick={() => {
-                        const genreId = parseInt(id);
-                        setSelectedGenres(prev =>
-                          prev.includes(genreId)
-                            ? prev.filter(g => g !== genreId)
-                            : [...prev, genreId]
-                        );
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        selectedGenres.includes(parseInt(id))
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Streaming Services (select all you have)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {STREAMING_SERVICES.map(service => (
-                    <button
-                      key={service}
-                      onClick={() => {
-                        setSelectedServices(prev =>
-                          prev.includes(service)
-                            ? prev.filter(s => s !== service)
-                            : [...prev, service]
-                        );
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        selectedServices.includes(service)
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {service}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={completeOnboarding}
-                disabled={!username || !selectedAgeGroup}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Get Started 🔥
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Settings</h2>
-              <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    localStorage.setItem('hotlist-username', e.target.value);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Age Group</label>
-                <select
-                  value={selectedAgeGroup}
-                  onChange={(e) => {
-                    setSelectedAgeGroup(e.target.value);
-                    localStorage.setItem('hotlist-agegroup', e.target.value);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Select age group</option>
-                  {AGE_GROUPS.map(age => (
-                    <option key={age} value={age}>{age}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <button
-                  onClick={() => {
-                    setShowSettings(false);
-                    setShowRatingPreference(true);
-                  }}
-                  className="w-full text-left px-4 py-3 bg-gray-50 rounded-lg hover:bg-gray-100"
-                >
-                  <div className="font-medium text-gray-800">Rating Preference</div>
-                  <div className="text-sm text-gray-600">
-                    Currently: {ratingPreference === 'tmdb' ? 'TMDB' : 'IMDb'}
-                  </div>
-                </button>
-              </div>
-
-              <button
-                onClick={() => setShowSettings(false)}
-                className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rating Preference Modal */}
-      {showRatingPreference && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Choose Rating Source</h2>
-            
-            <div className="space-y-3">
-              <button
-                onClick={() => saveRatingPreference('tmdb')}
-                className={`w-full p-4 rounded-lg border-2 text-left ${
-                  ratingPreference === 'tmdb'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="font-semibold">TMDB Rating</div>
-                <div className="text-sm text-gray-600">
-                  The Movie Database ratings (0-10 scale)
-                </div>
-              </button>
-
-              <button
-                onClick={() => saveRatingPreference('imdb')}
-                className={`w-full p-4 rounded-lg border-2 text-left ${
-                  ratingPreference === 'imdb'
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="font-semibold">IMDb Rating</div>
-                <div className="text-sm text-gray-600">
-                  Internet Movie Database ratings (0-10 scale)
-                </div>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowRatingPreference(false)}
-              className="w-full mt-4 text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Details Modal */}
-      {showDetailsModal && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {selectedItem.poster_path && (
-              <img
-                src={`${TMDB_IMAGE_BASE}${selectedItem.poster_path}`}
-                alt={selectedItem.title || selectedItem.name}
-                className="w-full h-64 object-cover"
-              />
-            )}
-            
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      {selectedItem.title || selectedItem.name}
-                    </h2>
-                    {selectedItem.media_type === 'tv' && (
-                      <span className="bg-purple-100 text-purple-700 text-sm px-2 py-1 rounded">
-                        TV Series
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-600">
-                    {selectedItem.release_date?.split('-')[0] || selectedItem.first_air_date?.split('-')[0]}
-                  </p>
-                  {selectedItem.media_type === 'tv' && selectedItem.seasons && (
-                    <p className="text-sm text-gray-500">
-                      {selectedItem.seasons} Season{selectedItem.seasons > 1 ? 's' : ''} • {selectedItem.episodes} Episodes
-                    </p>
-                  )}
-                </div>
-                <button onClick={() => setShowDetailsModal(false)} className="text-gray-500 hover:text-gray-700">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-1">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="font-semibold">
-                    {ratingPreference === 'tmdb' 
-                      ? selectedItem.vote_average?.toFixed(1)
-                      : selectedItem.imdbRating || selectedItem.vote_average?.toFixed(1)}
-                  </span>
-                  <span className="text-sm text-gray-500 ml-1">
-                    ({ratingPreference === 'tmdb' ? 'TMDB' : 'IMDb'})
-                  </span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-800 mb-2">Synopsis</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {itemDetails?.synopsis || selectedItem.synopsis || 'Loading...'}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-800 mb-2">
-                  {selectedItem.media_type === 'tv' ? 'Creator' : 'Director'}
-                </h3>
-                <p className="text-gray-600">
-                  {itemDetails?.director || selectedItem.director || 'Loading...'}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-800 mb-2">Cast</h3>
-                <p className="text-gray-600">
-                  {itemDetails?.cast?.join(', ') || selectedItem.cast?.join(', ') || 'Loading...'}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-800 mb-2">Genres</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedItem.genre_ids?.map(genreId => (
-                    <span key={genreId} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                      {GENRE_MAP[genreId]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-800">Add to Hotlist</h2>
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-4">
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    searchContent(e.target.value);
-                  }}
-                  placeholder="Search for movies or TV shows..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  autoFocus
-                />
-              </div>
-
-              {isSearching && (
-                <div className="text-center py-8 text-gray-500">Searching...</div>
-              )}
-
-              {!isSearching && searchResults.length === 0 && searchQuery && (
-                <div className="text-center py-8 text-gray-500">No results found</div>
-              )}
-
-              <div className="space-y-3">
-                {searchResults.map(item => {
-                  const title = item.title || item.name;
-                  const year = item.release_date?.split('-')[0] || item.first_air_date?.split('-')[0];
-                  
-                  return (
-                    <div key={`${item.media_type}-${item.id}`} className="flex gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                      {item.poster_path ? (
-                        <img
-                          src={`${TMDB_IMAGE_BASE}${item.poster_path}`}
-                          alt={title}
-                          className="w-16 h-24 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center">
-                          {item.media_type === 'tv' ? (
-                            <Tv className="w-6 h-6 text-gray-400" />
-                          ) : (
-                            <Film className="w-6 h-6 text-gray-400" />
-                          )}
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <div className="flex items-start gap-2">
-                          <h3 className="font-semibold text-gray-800 flex-1">{title}</h3>
-                          {item.media_type === 'tv' && (
-                            <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded">
-                              TV
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500 mb-1">{year}</p>
-                        <div className="flex items-center gap-1 mb-2">
-                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                          <span className="text-sm">{item.vote_average?.toFixed(1)}</span>
-                        </div>
-                        <button
-                          onClick={() => addItem(item)}
-                          className="bg-orange-500 text-white px-4 py-1 rounded hover:bg-orange-600 text-sm"
-                        >
-                          Add to Hotlist
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Friends List Modal */}
-      {showFriendsList && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Friends</h2>
-              <button onClick={() => setShowFriendsList(false)} className="text-gray-500 hover:text-gray-700">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="text-center py-8 text-gray-500">
-              <User className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>Friends feature coming soon!</p>
-              <p className="text-sm mt-2">Connect with friends and share your hotlists</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 sticky top-0 z-10 shadow-lg">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
@@ -863,13 +399,13 @@ function App() {
             HOTLIST
           </h1>
           <div className="flex gap-2">
-            <button
+            <button 
               onClick={() => setShowSettings(!showSettings)}
               className="p-2 bg-white/20 rounded-full hover:bg-white/30"
             >
               <Settings className="w-5 h-5" />
             </button>
-            <button
+            <button 
               onClick={() => setShowFriendsList(!showFriendsList)}
               className="p-2 bg-white/20 rounded-full hover:bg-white/30"
             >
@@ -880,87 +416,78 @@ function App() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b sticky top-[72px] z-10">
-        <div className="max-w-2xl mx-auto flex">
+      <div className="bg-white border-b sticky top-16 z-10">
+        <div className="flex max-w-2xl mx-auto">
           <button
             onClick={() => setActiveTab('hotlist')}
-            className={`flex-1 py-3 font-semibold ${
+            className={`flex-1 py-3 font-medium ${
               activeTab === 'hotlist'
                 ? 'text-orange-500 border-b-2 border-orange-500'
                 : 'text-gray-500'
             }`}
           >
-            My HOTLIST ({hotlistItems.length})
+            🔥 HOTLIST ({movies.filter(m => m.status !== 'watched').length})
           </button>
           <button
             onClick={() => setActiveTab('watched')}
-            className={`flex-1 py-3 font-semibold ${
+            className={`flex-1 py-3 font-medium ${
               activeTab === 'watched'
                 ? 'text-orange-500 border-b-2 border-orange-500'
                 : 'text-gray-500'
             }`}
           >
-            Watched ({items.filter(m => m.status === 'watched').length})
+            ✓ Watched ({movies.filter(m => m.status === 'watched').length})
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-2xl mx-auto p-4">
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-12">
-            <Flame className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">
-              {activeTab === 'hotlist' ? 'Your hotlist is empty' : 'No watched items yet'}
-            </p>
-            {activeTab === 'hotlist' && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
-              >
-                Add Your First Item
-              </button>
-            )}
+      {/* Movie List */}
+      <div className="max-w-2xl mx-auto pb-24">
+        {filteredMovies.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Flame className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">No {activeTab === 'hotlist' ? 'titles' : 'watched titles'} yet</p>
+            <p className="text-sm mt-2">Tap the + button to add your first {activeTab === 'hotlist' ? 'recommendation' : 'title'}!</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
             {activeTab === 'hotlist' ? (
-              // Drag and Drop enabled for Hotlist
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={hotlistItems.map(m => m.id)}
+                  items={movieIds}
                   strategy={verticalListSortingStrategy}
                 >
-                  {hotlistItems.map((item) => (
+                  {filteredMovies.map((movie) => (
                     <SortableMovieCard
-                      key={item.id}
-                      item={item}
-                      isDraggable={true}
-                      onUpdateStatus={updateStatus}
-                      onShare={shareItem}
-                      onDelete={deleteItem}
-                      onViewDetails={viewDetails}
+                      key={movie.id}
+                      movie={movie}
                       ratingPreference={ratingPreference}
+                      onStatusChange={updateMovieStatus}
+                      onRate={(m) => { setSelectedMovie(m); setShowRating(true); }}
+                      onShare={shareMovie}
+                      onDelete={deleteMovie}
+                      onCardClick={handleCardClick}
+                      isDraggable={true}
                     />
                   ))}
                 </SortableContext>
               </DndContext>
             ) : (
-              // Regular list for Watched (no drag and drop)
-              filteredItems.map((item) => (
+              filteredMovies.map((movie) => (
                 <SortableMovieCard
-                  key={item.id}
-                  item={item}
-                  isDraggable={false}
-                  onUpdateStatus={updateStatus}
-                  onShare={shareItem}
-                  onDelete={deleteItem}
-                  onViewDetails={viewDetails}
+                  key={movie.id}
+                  movie={movie}
                   ratingPreference={ratingPreference}
+                  onStatusChange={updateMovieStatus}
+                  onRate={(m) => { setSelectedMovie(m); setShowRating(true); }}
+                  onShare={shareMovie}
+                  onDelete={deleteMovie}
+                  onCardClick={handleCardClick}
+                  isDraggable={false}
                 />
               ))
             )}
@@ -968,14 +495,632 @@ function App() {
         )}
       </div>
 
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+          <div className="bg-white w-full rounded-t-3xl p-6 max-w-2xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Settings</h2>
+              <button onClick={() => setShowSettings(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Rating Preference</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRatingPreference('imdb')}
+                    className={`flex-1 py-2 px-4 rounded-lg ${
+                      ratingPreference === 'imdb' 
+                        ? 'bg-orange-500 text-white' 
+                        : 'bg-gray-100'
+                    }`}
+                  >
+                    ⭐ IMDB
+                  </button>
+                  <button
+                    onClick={() => setRatingPreference('rt')}
+                    className={`flex-1 py-2 px-4 rounded-lg ${
+                      ratingPreference === 'rt' 
+                        ? 'bg-orange-500 text-white' 
+                        : 'bg-gray-100'
+                    }`}
+                  >
+                    🍅 Rotten Tomatoes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Friends List Modal */}
+      {showFriendsList && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+          <div className="bg-white w-full rounded-t-3xl p-6 max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Friends</h2>
+              <button onClick={() => setShowFriendsList(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newFriendName}
+                  onChange={(e) => setNewFriendName(e.target.value)}
+                  placeholder="Friend's name"
+                  className="flex-1 px-4 py-2 border rounded-lg"
+                  onKeyPress={(e) => e.key === 'Enter' && addFriend()}
+                />
+                <button
+                  onClick={addFriend}
+                  className="px-6 py-2 bg-orange-500 text-white rounded-lg"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="space-y-2">
+                {friends.map(friend => (
+                  <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span>{friend.name}</span>
+                    <button
+                      onClick={() => deleteFriend(friend.id)}
+                      className="text-red-500"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rating Modal */}
+      {showRating && selectedMovie && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-4 text-center">Rate {selectedMovie.title}</h2>
+            <p className="text-center text-gray-600 mb-6">How hot was it? 🔥</p>
+            
+            <div className="mb-6">
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.5"
+                defaultValue="3"
+                className="w-full"
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  document.getElementById('rating-display').textContent = value.toFixed(1);
+                  document.getElementById('flame-display').textContent = '🔥'.repeat(Math.floor(value)) + (value % 1 ? '🔥' : '');
+                }}
+              />
+              <div className="text-center mt-4">
+                <div id="flame-display" className="text-4xl mb-2">🔥🔥🔥</div>
+                <div id="rating-display" className="text-2xl font-bold">3.0</div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowRating(false);
+                  setSelectedMovie(null);
+                }}
+                className="flex-1 py-3 bg-gray-200 rounded-xl font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const rating = parseFloat(document.getElementById('rating-display').textContent);
+                  rateMovie(rating);
+                }}
+                className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-semibold"
+              >
+                Save & Share
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetails && detailsMovie && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
+          <div className="bg-white w-full rounded-t-3xl p-6 max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-2xl font-bold">{detailsMovie.title}</h2>
+                {detailsMovie.year && <p className="text-gray-600">{detailsMovie.year}</p>}
+              </div>
+              <button onClick={() => setShowDetails(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {detailsMovie.poster && (
+              <img 
+                src={detailsMovie.poster}
+                alt={detailsMovie.title}
+                className="w-full h-64 object-cover rounded-lg mb-4"
+              />
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Genre</p>
+                <p>{detailsMovie.genre}</p>
+              </div>
+
+              {detailsMovie.mediaType === 'tv' && detailsMovie.seasons && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Seasons</p>
+                  <p>{detailsMovie.seasons} season{detailsMovie.seasons !== 1 ? 's' : ''}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-medium text-gray-500">Rating</p>
+                <p>{ratingPreference === 'imdb' ? detailsMovie.imdbRating : detailsMovie.rtRating}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-500">Recommended by</p>
+                <p>{detailsMovie.friend}</p>
+              </div>
+
+              {detailsMovie.note && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Note</p>
+                  <p className="italic">{detailsMovie.note}</p>
+                </div>
+              )}
+
+              {detailsMovie.overview && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Overview</p>
+                  <p className="text-sm">{detailsMovie.overview}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Movie Modal */}
+      {showAddMovie && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col">
+          <div className="p-4 border-b flex items-center justify-between bg-white">
+            <h2 className="text-xl font-bold">Add to HOTLIST</h2>
+            <button onClick={() => {
+              setShowAddMovie(false);
+              setSelectedResult(null);
+              setSearchQuery('');
+              setSearchResults([]);
+              setShowInlineFriendAdd(false);
+            }}>
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {!selectedResult ? (
+              <>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search movies or TV shows..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl mb-4 text-lg"
+                  autoFocus
+                />
+
+                {isSearching && (
+                  <p className="text-center py-4 text-gray-500">Searching...</p>
+                )}
+
+                <div className="space-y-2">
+                  {searchResults.map((result) => (
+                    <div
+                      key={result.id}
+                      onClick={() => setSelectedResult(result)}
+                      className="flex gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
+                    >
+                      {result.poster ? (
+                        <img src={result.poster} alt={result.title} className="w-12 h-18 object-cover rounded" />
+                      ) : (
+                        <div className="w-12 h-18 bg-gray-200 rounded flex items-center justify-center">
+                          {result.mediaType === 'tv' ? (
+                            <Tv className="w-6 h-6 text-gray-400" />
+                          ) : (
+                            <Film className="w-6 h-6 text-gray-400" />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold">{result.title}</h3>
+                          {result.mediaType === 'tv' && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">TV</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">{result.year}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {searchResults.length === 0 && searchQuery.length >= 2 && !isSearching && (
+                  <p className="text-center py-4 text-gray-500">No results found. Try a different search.</p>
+                )}
+                {searchQuery.length < 2 && (
+                  <p className="text-gray-500 text-center py-4">Type at least 2 characters to search...</p>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                  {selectedResult.poster ? (
+                    <img src={selectedResult.poster} alt={selectedResult.title} className="w-16 h-24 object-cover rounded" />
+                  ) : (
+                    <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center">
+                      {selectedResult.mediaType === 'tv' ? (
+                        <Tv className="w-8 h-8 text-gray-400" />
+                      ) : (
+                        <Film className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold">{selectedResult.title}</h3>
+                      {selectedResult.mediaType === 'tv' && (
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">TV</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{selectedResult.year}</p>
+                    <p className="text-sm text-gray-600">{selectedResult.imdbRating}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedResult(null)}
+                  className="text-orange-500 text-sm"
+                >
+                  ← Choose different title
+                </button>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Recommended by</label>
+                  {!showInlineFriendAdd ? (
+                    <div className="space-y-2">
+                      <select
+                        value={selectedFriend}
+                        onChange={(e) => {
+                          if (e.target.value === 'ADD_NEW') {
+                            setShowInlineFriendAdd(true);
+                          } else {
+                            setSelectedFriend(e.target.value);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
+                      >
+                        <option value="">Select a friend</option>
+                        {friends.map(friend => (
+                          <option key={friend.id} value={friend.name}>{friend.name}</option>
+                        ))}
+                        <option value="ADD_NEW">+ Add New Friend</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newInlineFriend}
+                        onChange={(e) => setNewInlineFriend(e.target.value)}
+                        placeholder="Friend's name"
+                        className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl"
+                        autoFocus
+                        onKeyPress={(e) => e.key === 'Enter' && handleInlineFriendAdd()}
+                      />
+                      <button
+                        onClick={handleInlineFriendAdd}
+                        className="px-6 py-3 bg-orange-500 text-white rounded-xl font-semibold"
+                      >
+                        Add
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowInlineFriendAdd(false);
+                          setNewInlineFriend('');
+                        }}
+                        className="px-4 py-3 bg-gray-200 rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Streaming Service</label>
+                  <input
+                    type="text"
+                    value={streaming}
+                    onChange={(e) => setStreaming(e.target.value)}
+                    placeholder="e.g., Netflix, Prime Video, or ???"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Note (Optional)</label>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Why should you watch this?"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl resize-none"
+                    rows="3"
+                  />
+                </div>
+
+                <button
+                  onClick={handleAddMovie}
+                  disabled={!selectedFriend}
+                  className={`w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 ${
+                    selectedFriend ? 'bg-orange-500' : 'bg-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  <Check className="w-5 h-5" />
+                  Add to HOTLIST
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Floating Add Button */}
-      {activeTab === 'hotlist' && (
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="fixed bottom-6 right-6 bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-shadow z-20"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
+      <button
+        onClick={() => setShowAddMovie(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-orange-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-orange-600 transition-colors z-40"
+      >
+        <Plus className="w-7 h-7" />
+      </button>
+
+      {/* ONBOARDING FLOW */}
+      {showOnboarding && (
+        <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+          <div className="max-w-md w-full p-6">
+            {/* Step 1: Name & Gender */}
+            {onboardingStep === 1 && (
+              <div className="space-y-6">
+                <div className="text-center mb-8">
+                  <Flame className="w-16 h-16 mx-auto mb-4 text-orange-500" />
+                  <h2 className="text-3xl font-bold">Welcome to HOTLIST 🔥</h2>
+                  <p className="text-gray-600 mt-2">Let's personalize your experience</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Your Name</label>
+                  <input
+                    type="text"
+                    value={tempProfile.name}
+                    onChange={(e) => setTempProfile({...tempProfile, name: e.target.value})}
+                    placeholder="Enter your name"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Gender</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Male', 'Female', 'Other'].map(gender => (
+                      <button
+                        key={gender}
+                        onClick={() => setTempProfile({...tempProfile, gender})}
+                        className={`py-3 rounded-xl font-medium transition-colors ${
+                          tempProfile.gender === gender
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {gender}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setOnboardingStep(2)}
+                  disabled={!tempProfile.name || !tempProfile.gender}
+                  className={`w-full py-4 rounded-xl font-semibold ${
+                    tempProfile.name && tempProfile.gender
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+
+            {/* Step 2: Age Group */}
+            {onboardingStep === 2 && (
+              <div className="space-y-6">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold">What's your age group?</h2>
+                  <p className="text-gray-600 mt-2">This helps us personalize recommendations</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {['18-24', '25-34', '35-44', '45-54', '55-64', '65+'].map(age => (
+                    <button
+                      key={age}
+                      onClick={() => setTempProfile({...tempProfile, ageGroup: age})}
+                      className={`py-4 rounded-xl font-medium transition-colors ${
+                        tempProfile.ageGroup === age
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {age}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setOnboardingStep(1)}
+                    className="flex-1 py-4 bg-gray-200 rounded-xl font-semibold"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => setOnboardingStep(3)}
+                    disabled={!tempProfile.ageGroup}
+                    className={`flex-1 py-4 rounded-xl font-semibold ${
+                      tempProfile.ageGroup
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Streaming Services */}
+            {onboardingStep === 3 && (
+              <div className="space-y-6">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold">Which streaming services do you use?</h2>
+                  <p className="text-gray-600 mt-2">Select all that apply</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {['Netflix', 'Prime Video', 'Disney+', 'Apple TV+', 'HBO Max', 'Hulu', 'Paramount+', 'Other'].map(service => (
+                    <button
+                      key={service}
+                      onClick={() => {
+                        if (tempServices.includes(service)) {
+                          setTempServices(tempServices.filter(s => s !== service));
+                        } else {
+                          setTempServices([...tempServices, service]);
+                        }
+                      }}
+                      className={`py-4 rounded-xl font-medium transition-colors ${
+                        tempServices.includes(service)
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {service}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setOnboardingStep(2)}
+                    className="flex-1 py-4 bg-gray-200 rounded-xl font-semibold"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => setOnboardingStep(4)}
+                    className="flex-1 py-4 bg-orange-500 text-white rounded-xl font-semibold"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Add Friends */}
+            {onboardingStep === 4 && (
+              <div className="space-y-6">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold">Add your friends</h2>
+                  <p className="text-gray-600 mt-2">Who gives you the best recommendations?</p>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tempFriendInput}
+                    onChange={(e) => setTempFriendInput(e.target.value)}
+                    placeholder="Friend's name"
+                    className="flex-1 px-4 py-3 border-2 rounded-xl"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && tempFriendInput.trim()) {
+                        setTempFriends([...tempFriends, {id: Date.now(), name: tempFriendInput.trim()}]);
+                        setTempFriendInput('');
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (tempFriendInput.trim()) {
+                        setTempFriends([...tempFriends, {id: Date.now(), name: tempFriendInput.trim()}]);
+                        setTempFriendInput('');
+                      }
+                    }}
+                    className="px-6 py-3 bg-orange-500 text-white rounded-xl"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {tempFriends.map(friend => (
+                    <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <span>{friend.name}</span>
+                      <button
+                        onClick={() => setTempFriends(tempFriends.filter(f => f.id !== friend.id))}
+                        className="text-red-500"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setOnboardingStep(3)}
+                    className="flex-1 py-4 bg-gray-200 rounded-xl font-semibold"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserProfile(tempProfile);
+                      setFriends(tempFriends);
+                      localStorage.setItem('hotlist_profile', JSON.stringify(tempProfile));
+                      localStorage.setItem('hotlist_friends', JSON.stringify(tempFriends));
+                      localStorage.setItem('hotlist_onboarding_complete', 'true');
+                      setShowOnboarding(false);
+                    }}
+                    className="flex-1 py-4 bg-orange-500 text-white rounded-xl font-semibold"
+                  >
+                    Get Started! 🔥
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
