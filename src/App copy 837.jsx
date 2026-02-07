@@ -22,6 +22,7 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
 const STATUS_OPTIONS = [
+  { value: 'want', label: 'Want to Watch', color: 'bg-blue-500' },
   { value: 'interested', label: 'Interested', color: 'bg-purple-500' },
   { value: 'watching', label: 'Watching', color: 'bg-yellow-500' },
   { value: 'watched', label: 'Watched', color: 'bg-green-500' }
@@ -58,11 +59,6 @@ const getGenreNames = (genreIds) => {
 
 // Sortable Movie/TV Card Component
 function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelete, onViewDetails, ratingPreference }) {
-  const [swipeX, setSwipeX] = React.useState(0);
-  const [isSwiping, setIsSwiping] = React.useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  const startX = React.useRef(0);
-  
   const {
     attributes,
     listeners,
@@ -70,110 +66,52 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id, disabled: !isDraggable || isSwiping });
+  } = useSortable({ id: item.id, disabled: !isDraggable });
 
   const style = {
-    transform: isDragging ? CSS.Transform.toString(transform) : `translateX(${swipeX}px)`,
-    transition: isSwiping ? 'none' : transition,
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleTouchStart = (e) => {
-    if (isDraggable) return; // Don't swipe when drag handle is available
-    startX.current = e.touches[0].clientX;
-    setIsSwiping(true);
-  };
-
-  const handleTouchMove = (e) => {
-    if (isDraggable || !isSwiping) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX.current;
-    
-    // Only allow left swipe (negative values)
-    if (diff < 0) {
-      setSwipeX(Math.max(diff, -100)); // Limit to -100px
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isSwiping) return;
-    setIsSwiping(false);
-    
-    // If swiped more than 60px, show delete confirmation
-    if (swipeX < -60) {
-      setShowDeleteConfirm(true);
-    } else {
-      setSwipeX(0); // Snap back
-    }
-  };
-
-  const handleDeleteConfirm = () => {
-    onDelete(item.id);
-    setShowDeleteConfirm(false);
-    setSwipeX(0);
-  };
-
-  const handleDeleteCancel = () => {
-    setShowDeleteConfirm(false);
-    setSwipeX(0);
-  };
-
   const currentStatus = STATUS_OPTIONS.find(s => s.value === item.status);
-  
-  // Display rating based on user preference and tab
-  let displayRating = '';
-  if (item.status === 'watched' && item.hotRating) {
-    // On WATCHED tab or watched items: show user's flame rating
-    displayRating = null; // Will show flame separately
-  } else {
-    // On HOTLIST tab: show external rating based on preference
-    if (ratingPreference === 'imdb' || ratingPreference === 'tmdb') {
-      const rating = item.tmdbRating || '0.0';
-      displayRating = rating;
-    } else if (ratingPreference === 'rotten') {
-      // For Rotten Tomatoes, convert TMDB 0-10 scale to 0-100%
-      const rating = item.tmdbRating ? Math.round(parseFloat(item.tmdbRating) * 10) : 0;
-      displayRating = `${rating}%`;
-    }
-  }
+  const displayRating = ratingPreference === 'tmdb' 
+    ? (item.tmdbRating ? `⭐ ${item.tmdbRating}` : '⭐ N/A')
+    : (item.imdbRating ? `⭐ ${item.imdbRating}` : '⭐ N/A');
 
   // Convert genre IDs to names
   const genreDisplay = getGenreNames(item.genre_ids);
 
   return (
-    <>
-      <div 
-        ref={setNodeRef} 
-        style={style} 
-        className={`bg-white rounded-lg p-2 transition-all relative ${
-          isDragging 
-            ? 'border-4 border-orange-500 shadow-2xl' 
-            : 'border-2 border-gray-400 hover:border-orange-500'
-        }`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="flex gap-2">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`bg-white rounded-lg p-4 transition-all ${
+        isDragging 
+          ? 'border-4 border-orange-500 shadow-2xl' 
+          : 'border-2 border-gray-400 hover:border-orange-500'
+      }`}
+    >
+      <div className="flex gap-3">
         {isDraggable && (
           <div 
             {...attributes} 
             {...listeners} 
-            className="flex items-center justify-center bg-gray-100 hover:bg-orange-100 active:bg-orange-200 rounded cursor-grab active:cursor-grabbing transition-colors"
-            style={{ width: '32px', minHeight: '100%', touchAction: 'none' }}
+            className="flex items-center justify-center bg-gray-100 hover:bg-orange-100 active:bg-orange-200 rounded-lg cursor-grab active:cursor-grabbing transition-colors"
+            style={{ width: '60px', minHeight: '100%', touchAction: 'none' }}
           >
-            <div className="flex flex-col gap-0.5">
-              <div className="flex gap-0.5">
-                <div className="w-0.5 h-3 bg-gray-500 rounded"></div>
-                <div className="w-0.5 h-3 bg-gray-500 rounded"></div>
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-1">
+                <div className="w-1 h-4 bg-gray-500 rounded"></div>
+                <div className="w-1 h-4 bg-gray-500 rounded"></div>
               </div>
-              <div className="flex gap-0.5">
-                <div className="w-0.5 h-3 bg-gray-500 rounded"></div>
-                <div className="w-0.5 h-3 bg-gray-500 rounded"></div>
+              <div className="flex gap-1">
+                <div className="w-1 h-4 bg-gray-500 rounded"></div>
+                <div className="w-1 h-4 bg-gray-500 rounded"></div>
               </div>
-              <div className="flex gap-0.5">
-                <div className="w-0.5 h-3 bg-gray-500 rounded"></div>
-                <div className="w-0.5 h-3 bg-gray-500 rounded"></div>
+              <div className="flex gap-1">
+                <div className="w-1 h-4 bg-gray-500 rounded"></div>
+                <div className="w-1 h-4 bg-gray-500 rounded"></div>
               </div>
             </div>
           </div>
@@ -184,11 +122,11 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
             <img
               src={`${TMDB_IMAGE_BASE}${item.poster_path}`}
               alt={item.title || item.name}
-              className="w-12 h-18 object-cover rounded"
+              className="w-16 h-24 object-cover rounded"
             />
           ) : (
-            <div className="w-12 h-18 bg-gray-200 rounded flex items-center justify-center">
-              {item.media_type === 'tv' ? <Tv className="w-6 h-6 text-gray-400" /> : <Film className="w-6 h-6 text-gray-400" />}
+            <div className="w-16 h-24 bg-gray-200 rounded flex items-center justify-center">
+              {item.media_type === 'tv' ? <Tv className="w-8 h-8 text-gray-400" /> : <Film className="w-8 h-8 text-gray-400" />}
             </div>
           )}
         </div>
@@ -196,120 +134,73 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h3 
-              className="font-semibold text-sm text-gray-900 cursor-pointer hover:text-orange-500 transition-colors line-clamp-1"
+              className="font-semibold text-gray-900 cursor-pointer hover:text-orange-500 transition-colors line-clamp-2"
               onClick={() => onViewDetails(item)}
             >
               {item.title || item.name}
             </h3>
             {item.media_type === 'tv' && (
-              <span className="flex-shrink-0 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded font-semibold">
+              <span className="flex-shrink-0 bg-purple-500 text-white text-xs px-2 py-1 rounded font-semibold">
                 TV
               </span>
             )}
           </div>
 
-          <div className="text-xs text-gray-600 mt-0.5">
+          <div className="text-sm text-gray-600 mt-1">
             {item.streaming && <span>{item.streaming}</span>}
             {item.streaming && genreDisplay && <span> • </span>}
             {genreDisplay && <span>{genreDisplay}</span>}
           </div>
 
-          {/* Rating + Status Buttons + Friend on same line */}
-          <div className="flex items-center justify-between mt-1 gap-2">
-            {/* Left side: Rating + Friend */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {item.status === 'watched' && item.hotRating ? (
-                // WATCHED: Show user's flame rating
-                <>
-                  <span className="text-base">🔥</span>
-                  <span className="text-xs font-semibold text-orange-500">
-                    {item.hotRating.toFixed(1)}
-                  </span>
-                </>
-              ) : (
-                // HOTLIST: Show external rating
-                displayRating && <span className="text-xs font-medium text-gray-700">{displayRating}</span>
-              )}
-              {item.recommendedBy && (
-                <span className="text-xs text-orange-500">({item.recommendedBy})</span>
-              )}
-            </div>
-
-            {/* Right side: Status buttons */}
-            <div className="flex gap-1 flex-shrink-0">
-              <button
-                onClick={() => onUpdateStatus(item, 'interested')}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  item.status === 'interested'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Interested
-              </button>
-              <button
-                onClick={() => onUpdateStatus(item, 'watching')}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  item.status === 'watching'
-                    ? 'bg-yellow-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Watching
-              </button>
-              <button
-                onClick={() => onUpdateStatus(item, 'watched')}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  item.status === 'watched'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Watched
-              </button>
-            </div>
+          <div className="text-sm text-gray-500 mt-1">
+            {displayRating}
+            {item.recommendedBy && (
+              <span className="ml-2 text-orange-500">({item.recommendedBy})</span>
+            )}
           </div>
 
-          {/* Share button only */}
-          <div className="flex gap-1.5 mt-1">
+          {item.status === 'watched' && item.hotRating && (
+            <div className="flex items-center gap-1 mt-2">
+              <Flame className="w-4 h-4 text-orange-500" />
+              <span className="text-sm font-semibold text-orange-500">
+                {item.hotRating.toFixed(1)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 mt-3">
+            {STATUS_OPTIONS.map(status => (
+              <button
+                key={status.value}
+                onClick={() => onUpdateStatus(item, status.value)}
+                className={`text-xs px-3 py-1 rounded ${
+                  item.status === status.value
+                    ? `${status.color} text-white`
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {status.label}
+              </button>
+            ))}
+            
             <button
               onClick={() => onShare(item)}
-              className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center gap-0.5"
+              className="text-xs px-3 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center gap-1"
             >
               <Share2 className="w-3 h-3" />
               Share
             </button>
-          </div>
-        </div>
-      </div>
-      </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold mb-2">Delete Title?</h3>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to remove "{item.title || item.name}" from your list?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDeleteCancel}
-                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
+            <button
+              onClick={() => onDelete(item.id)}
+              className="text-xs px-3 py-1 rounded text-red-500 hover:bg-red-50"
+            >
+              Delete
+            </button>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
 
@@ -482,7 +373,7 @@ function App() {
     
     const newItem = {
       ...detailedItem,
-      status: 'interested',
+      status: 'want',
       recommendedBy: friend,
       streaming: streaming,
       hotRating: null,
@@ -715,56 +606,8 @@ function App() {
                   Back
                 </button>
                 <button
-                  onClick={() => setOnboardingStep(4)}
-                  className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600"
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
-          )}
-
-          {onboardingStep === 4 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rating Preference</label>
-                <p className="text-sm text-gray-500 mb-3">Which rating system do you prefer to see?</p>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setRatingPreference('imdb')}
-                    className={`w-full py-3 px-4 rounded-lg text-left ${
-                      ratingPreference === 'imdb'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className="font-semibold">IMDB</div>
-                    <div className="text-sm opacity-90">Shows ratings like: 7.7</div>
-                  </button>
-                  <button
-                    onClick={() => setRatingPreference('rotten')}
-                    className={`w-full py-3 px-4 rounded-lg text-left ${
-                      ratingPreference === 'rotten'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <div className="font-semibold">Rotten Tomatoes</div>
-                    <div className="text-sm opacity-90">Shows ratings like: 85%</div>
-                  </button>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setOnboardingStep(3)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300"
-                >
-                  Back
-                </button>
-                <button
                   onClick={completeOnboarding}
-                  disabled={!ratingPreference}
-                  className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600"
                 >
                   Start Using HOTLIST
                 </button>
@@ -782,7 +625,7 @@ function App() {
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-3xl">🔥</span>
+            <Flame className="w-8 h-8" />
             <h1 className="text-2xl font-bold">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -829,7 +672,7 @@ function App() {
       <div className="max-w-4xl mx-auto p-4">
         {currentItems.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔥</div>
+            <Flame className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">
               {activeTab === 'hotlist' 
                 ? "No titles in your hotlist yet! Add some recommendations to get started."
@@ -840,7 +683,7 @@ function App() {
           <>
             {/* Drag instruction - only show on HOTLIST tab */}
             {activeTab === 'hotlist' && (
-              <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
                 <div className="flex flex-col gap-0.5">
                   <div className="flex gap-0.5">
                     <div className="w-0.5 h-2 bg-orange-500 rounded"></div>
@@ -851,8 +694,8 @@ function App() {
                     <div className="w-0.5 h-2 bg-orange-500 rounded"></div>
                   </div>
                 </div>
-                <p className="text-xs text-orange-800 font-medium">
-                  Drag the grip handle to reorder
+                <p className="text-sm text-orange-800 font-medium">
+                  Drag the grip handle on the left to reorder your list
                 </p>
               </div>
             )}
@@ -866,7 +709,7 @@ function App() {
                 items={currentItems.map(item => item.id)}
                 strategy={verticalListSortingStrategy}
               >
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {currentItems.map((item) => (
                     <SortableMovieCard
                       key={item.id}
@@ -970,7 +813,7 @@ function App() {
             
             <div className="mb-6">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-4xl">🔥</span>
+                <Flame className="w-8 h-8 text-orange-500" />
                 <span className="text-4xl font-bold text-orange-500">
                   {tempRating.toFixed(1)}
                 </span>
@@ -1060,7 +903,7 @@ function App() {
                     )}
                     {currentItem.hotRating && (
                       <p className="text-sm flex items-center gap-1">
-                        <span>🔥</span>
+                        <Flame className="w-4 h-4 text-orange-500" />
                         <span className="font-semibold text-orange-500">
                           {currentItem.hotRating.toFixed(1)} (Your Rating)
                         </span>

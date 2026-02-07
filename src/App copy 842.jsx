@@ -22,6 +22,7 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
 const STATUS_OPTIONS = [
+  { value: 'want', label: 'Want to Watch', color: 'bg-blue-500' },
   { value: 'interested', label: 'Interested', color: 'bg-purple-500' },
   { value: 'watching', label: 'Watching', color: 'bg-yellow-500' },
   { value: 'watched', label: 'Watched', color: 'bg-green-500' }
@@ -58,11 +59,6 @@ const getGenreNames = (genreIds) => {
 
 // Sortable Movie/TV Card Component
 function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelete, onViewDetails, ratingPreference }) {
-  const [swipeX, setSwipeX] = React.useState(0);
-  const [isSwiping, setIsSwiping] = React.useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  const startX = React.useRef(0);
-  
   const {
     attributes,
     listeners,
@@ -70,52 +66,12 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id, disabled: !isDraggable || isSwiping });
+  } = useSortable({ id: item.id, disabled: !isDraggable });
 
   const style = {
-    transform: isDragging ? CSS.Transform.toString(transform) : `translateX(${swipeX}px)`,
-    transition: isSwiping ? 'none' : transition,
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.5 : 1,
-  };
-
-  const handleTouchStart = (e) => {
-    if (isDraggable) return; // Don't swipe when drag handle is available
-    startX.current = e.touches[0].clientX;
-    setIsSwiping(true);
-  };
-
-  const handleTouchMove = (e) => {
-    if (isDraggable || !isSwiping) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - startX.current;
-    
-    // Only allow left swipe (negative values)
-    if (diff < 0) {
-      setSwipeX(Math.max(diff, -100)); // Limit to -100px
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isSwiping) return;
-    setIsSwiping(false);
-    
-    // If swiped more than 60px, show delete confirmation
-    if (swipeX < -60) {
-      setShowDeleteConfirm(true);
-    } else {
-      setSwipeX(0); // Snap back
-    }
-  };
-
-  const handleDeleteConfirm = () => {
-    onDelete(item.id);
-    setShowDeleteConfirm(false);
-    setSwipeX(0);
-  };
-
-  const handleDeleteCancel = () => {
-    setShowDeleteConfirm(false);
-    setSwipeX(0);
   };
 
   const currentStatus = STATUS_OPTIONS.find(s => s.value === item.status);
@@ -141,20 +97,16 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
   const genreDisplay = getGenreNames(item.genre_ids);
 
   return (
-    <>
-      <div 
-        ref={setNodeRef} 
-        style={style} 
-        className={`bg-white rounded-lg p-2 transition-all relative ${
-          isDragging 
-            ? 'border-4 border-orange-500 shadow-2xl' 
-            : 'border-2 border-gray-400 hover:border-orange-500'
-        }`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="flex gap-2">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`bg-white rounded-lg p-2 transition-all ${
+        isDragging 
+          ? 'border-4 border-orange-500 shadow-2xl' 
+          : 'border-2 border-gray-400 hover:border-orange-500'
+      }`}
+    >
+      <div className="flex gap-2">
         {isDraggable && (
           <div 
             {...attributes} 
@@ -214,64 +166,44 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
             {genreDisplay && <span>{genreDisplay}</span>}
           </div>
 
-          {/* Rating + Status Buttons + Friend on same line */}
-          <div className="flex items-center justify-between mt-1 gap-2">
-            {/* Left side: Rating + Friend */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {item.status === 'watched' && item.hotRating ? (
-                // WATCHED: Show user's flame rating
-                <>
-                  <span className="text-base">🔥</span>
-                  <span className="text-xs font-semibold text-orange-500">
-                    {item.hotRating.toFixed(1)}
-                  </span>
-                </>
-              ) : (
-                // HOTLIST: Show external rating
-                displayRating && <span className="text-xs font-medium text-gray-700">{displayRating}</span>
-              )}
+          {/* Rating display based on status */}
+          {item.status === 'watched' && item.hotRating ? (
+            // WATCHED: Show user's flame rating
+            <div className="flex items-center gap-1 mt-1">
+              <Flame className="w-3 h-3 text-orange-500" />
+              <span className="text-xs font-semibold text-orange-500">
+                {item.hotRating.toFixed(1)}
+              </span>
               {item.recommendedBy && (
-                <span className="text-xs text-orange-500">({item.recommendedBy})</span>
+                <span className="text-xs text-orange-500 ml-1">({item.recommendedBy})</span>
               )}
             </div>
-
-            {/* Right side: Status buttons */}
-            <div className="flex gap-1 flex-shrink-0">
-              <button
-                onClick={() => onUpdateStatus(item, 'interested')}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  item.status === 'interested'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Interested
-              </button>
-              <button
-                onClick={() => onUpdateStatus(item, 'watching')}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  item.status === 'watching'
-                    ? 'bg-yellow-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Watching
-              </button>
-              <button
-                onClick={() => onUpdateStatus(item, 'watched')}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  item.status === 'watched'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Watched
-              </button>
+          ) : (
+            // HOTLIST: Show external rating + friend
+            <div className="text-xs text-gray-500 mt-0.5">
+              {displayRating && <span className="font-medium">{displayRating}</span>}
+              {displayRating && item.recommendedBy && <span> • </span>}
+              {item.recommendedBy && (
+                <span className="text-orange-500">({item.recommendedBy})</span>
+              )}
             </div>
-          </div>
+          )}
 
-          {/* Share button only */}
-          <div className="flex gap-1.5 mt-1">
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {STATUS_OPTIONS.map(status => (
+              <button
+                key={status.value}
+                onClick={() => onUpdateStatus(item, status.value)}
+                className={`text-xs px-2 py-0.5 rounded ${
+                  item.status === status.value
+                    ? `${status.color} text-white`
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {status.label}
+              </button>
+            ))}
+            
             <button
               onClick={() => onShare(item)}
               className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center gap-0.5"
@@ -279,37 +211,17 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
               <Share2 className="w-3 h-3" />
               Share
             </button>
-          </div>
-        </div>
-      </div>
-      </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold mb-2">Delete Title?</h3>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to remove "{item.title || item.name}" from your list?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDeleteCancel}
-                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
+            <button
+              onClick={() => onDelete(item.id)}
+              className="text-xs px-2 py-0.5 rounded text-red-500 hover:bg-red-50"
+            >
+              Delete
+            </button>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }
 
@@ -482,7 +394,7 @@ function App() {
     
     const newItem = {
       ...detailedItem,
-      status: 'interested',
+      status: 'want',
       recommendedBy: friend,
       streaming: streaming,
       hotRating: null,
@@ -782,7 +694,7 @@ function App() {
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-3xl">🔥</span>
+            <Flame className="w-8 h-8" />
             <h1 className="text-2xl font-bold">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -829,7 +741,7 @@ function App() {
       <div className="max-w-4xl mx-auto p-4">
         {currentItems.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔥</div>
+            <Flame className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">
               {activeTab === 'hotlist' 
                 ? "No titles in your hotlist yet! Add some recommendations to get started."
@@ -970,7 +882,7 @@ function App() {
             
             <div className="mb-6">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-4xl">🔥</span>
+                <Flame className="w-8 h-8 text-orange-500" />
                 <span className="text-4xl font-bold text-orange-500">
                   {tempRating.toFixed(1)}
                 </span>
@@ -1060,7 +972,7 @@ function App() {
                     )}
                     {currentItem.hotRating && (
                       <p className="text-sm flex items-center gap-1">
-                        <span>🔥</span>
+                        <Flame className="w-4 h-4 text-orange-500" />
                         <span className="font-semibold text-orange-500">
                           {currentItem.hotRating.toFixed(1)} (Your Rating)
                         </span>

@@ -221,7 +221,7 @@ function SortableMovieCard({ item, isDraggable, onUpdateStatus, onShare, onDelet
               {item.status === 'watched' && item.hotRating ? (
                 // WATCHED: Show user's flame rating
                 <>
-                  <span className="text-base">🔥</span>
+                  <Flame className="w-3 h-3 text-orange-500" />
                   <span className="text-xs font-semibold text-orange-500">
                     {item.hotRating.toFixed(1)}
                   </span>
@@ -782,7 +782,7 @@ function App() {
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-3xl">🔥</span>
+            <Flame className="w-8 h-8" />
             <h1 className="text-2xl font-bold">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -829,7 +829,7 @@ function App() {
       <div className="max-w-4xl mx-auto p-4">
         {currentItems.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔥</div>
+            <Flame className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">
               {activeTab === 'hotlist' 
                 ? "No titles in your hotlist yet! Add some recommendations to get started."
@@ -970,7 +970,7 @@ function App() {
             
             <div className="mb-6">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-4xl">🔥</span>
+                <Flame className="w-8 h-8 text-orange-500" />
                 <span className="text-4xl font-bold text-orange-500">
                   {tempRating.toFixed(1)}
                 </span>
@@ -1060,7 +1060,7 @@ function App() {
                     )}
                     {currentItem.hotRating && (
                       <p className="text-sm flex items-center gap-1">
-                        <span>🔥</span>
+                        <Flame className="w-4 h-4 text-orange-500" />
                         <span className="font-semibold text-orange-500">
                           {currentItem.hotRating.toFixed(1)} (Your Rating)
                         </span>
