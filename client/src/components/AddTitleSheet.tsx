@@ -204,10 +204,12 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{result.title}</p>
+                      <p className="font-medium text-sm truncate">
+                        {result.title}
+                        {result.releaseDate && <span className="text-muted-foreground font-normal ml-1">({result.releaseDate.substring(0, 4)})</span>}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[11px] text-muted-foreground uppercase font-medium">{result.type === "Movie" ? "Film" : "TV"}</span>
-                        {result.releaseDate && <span className="text-[11px] text-muted-foreground">{result.releaseDate.substring(0, 4)}</span>}
                         {result.rating > 0 && (
                           <span className="flex items-center gap-0.5 text-[11px]">
                             <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />

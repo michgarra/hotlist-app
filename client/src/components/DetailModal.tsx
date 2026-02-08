@@ -28,14 +28,16 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
-              <h2 className="text-2xl font-bold text-white drop-shadow-lg" data-testid="text-detail-title">{item.title}</h2>
+              <h2 className="text-2xl font-bold text-white drop-shadow-lg" data-testid="text-detail-title">
+                {item.title}
+                {item.releaseDate && <span className="text-xl font-normal text-white/70 ml-2" data-testid="text-detail-year">({item.releaseDate.substring(0, 4)})</span>}
+              </h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant="secondary" className="text-[10px] bg-white/20 text-white border-0" data-testid="badge-detail-type">
                   {item.type === "Movie" ? <Film className="w-3 h-3 mr-1" /> : <Tv className="w-3 h-3 mr-1" />}
                   {item.type}
                 </Badge>
                 {item.genre && <span className="text-xs text-white/80">{item.genre}</span>}
-                {item.releaseDate && <span className="text-xs text-white/60">{item.releaseDate.substring(0, 4)}</span>}
               </div>
             </div>
           </div>
