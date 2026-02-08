@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Star, Flame, Tv, Film } from "lucide-react";
+import { Share2, Star, Flame, Tv, Film, GripVertical } from "lucide-react";
 import type { Recommendation } from "@shared/schema";
 
 interface TitleCardProps {
@@ -54,7 +54,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
   return (
     <div ref={constraintsRef} className="relative overflow-hidden" data-testid={`card-recommendation-${item.id}`}>
       <motion.div
-        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-6 bg-destructive rounded-md"
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-6 bg-destructive rounded-lg"
         style={{ opacity: deleteOpacity, scale: deleteScale }}
       >
         <span className="text-white font-bold text-sm">Delete</span>
@@ -67,13 +67,15 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         style={{ x }}
-        className="relative bg-card border border-card-border rounded-md cursor-pointer"
+        className="relative bg-card border-2 border-border/60 rounded-lg cursor-pointer shadow-sm"
         onClick={() => !isDragging && onOpenDetail(item)}
-        whileTap={isDragging ? undefined : { scale: 0.99 }}
+        whileTap={isDragging ? undefined : { scale: 0.98 }}
         data-testid={`card-body-${item.id}`}
       >
-        <div className="flex gap-3 p-3">
-          <div className="flex-shrink-0 w-16 h-24 rounded-md overflow-hidden bg-muted" data-testid={`img-poster-${item.id}`}>
+        <div className="flex items-center gap-2 p-2">
+          <GripVertical className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+
+          <div className="flex-shrink-0 w-10 h-14 rounded overflow-hidden bg-muted" data-testid={`img-poster-${item.id}`}>
             {item.posterUrl ? (
               <img
                 src={item.posterUrl}
@@ -84,115 +86,98 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 {item.type === "Movie" ? (
-                  <Film className="w-6 h-6 text-muted-foreground" />
+                  <Film className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  <Tv className="w-6 h-6 text-muted-foreground" />
+                  <Tv className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-foreground text-sm truncate" data-testid={`text-title-${item.id}`}>
-                    {item.title}
-                  </h3>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 uppercase font-bold" data-testid={`badge-type-${item.id}`}>
-                    {item.type === "Movie" ? "Film" : "TV"}
-                  </Badge>
-                  {item.platform && (
-                    <span className="text-xs text-muted-foreground" data-testid={`text-platform-${item.id}`}>{item.platform}</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  {item.imdbRating && (
-                    <span className="flex items-center gap-0.5 text-xs" data-testid={`text-rating-${item.id}`}>
-                      <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                      <span className="font-semibold">{item.imdbRating}</span>
-                    </span>
-                  )}
-                  {item.recommendedBy && (
-                    <span className="text-xs text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
-                  )}
-                </div>
-
-                {item.genre && (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate" data-testid={`text-genre-${item.id}`}>{item.genre}</p>
-                )}
-
-                {item.notes && (
-                  <p className="text-xs text-muted-foreground italic mt-0.5 truncate" data-testid={`text-notes-${item.id}`}>{item.notes}</p>
-                )}
-
-                {isWatched && item.hotRating && (
-                  <div className="flex items-center gap-0.5 mt-1" data-testid={`rating-hot-${item.id}`}>
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Flame
-                        key={i}
-                        className={`w-3 h-3 ${i < item.hotRating! ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="font-bold text-foreground text-[13px] leading-tight truncate" data-testid={`text-title-${item.id}`}>
+                {item.title}
+              </h3>
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 uppercase font-bold" data-testid={`badge-type-${item.id}`}>
+                {item.type === "Movie" ? "Film" : "TV"}
+              </Badge>
             </div>
 
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {!isWatched && (
-                <>
-                  <Button
-                    variant={item.status === "Interested" ? "default" : "outline"}
-                    size="sm"
-                    className="h-6 text-[11px] px-2"
-                    onClick={(e) => handleStatusClick(e, "Interested")}
-                    data-testid={`button-interested-${item.id}`}
-                  >
-                    Interested
-                  </Button>
-                  <Button
-                    variant={item.status === "Watching" ? "default" : "outline"}
-                    size="sm"
-                    className="h-6 text-[11px] px-2"
-                    onClick={(e) => handleStatusClick(e, "Watching")}
-                    data-testid={`button-watching-${item.id}`}
-                  >
-                    Watching
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[11px] px-2"
-                    onClick={(e) => handleStatusClick(e, "Watched")}
-                    data-testid={`button-watched-${item.id}`}
-                  >
-                    Watched
-                  </Button>
-                </>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {item.imdbRating && (
+                <span className="flex items-center gap-0.5 text-[11px]" data-testid={`text-rating-${item.id}`}>
+                  <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
+                  <span className="font-semibold">{item.imdbRating}</span>
+                </span>
               )}
-              {isWatched && (
+              {item.platform && (
+                <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{item.platform}</span>
+              )}
+              {item.recommendedBy && (
+                <span className="text-[11px] text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
+              )}
+              {isWatched && item.hotRating && (
+                <span className="flex items-center gap-0.5" data-testid={`rating-hot-${item.id}`}>
+                  {Array.from({ length: item.hotRating }).map((_, i) => (
+                    <Flame key={i} className="w-2.5 h-2.5 text-primary fill-primary" />
+                  ))}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {!isWatched && (
+              <>
+                <Button
+                  variant={item.status === "Interested" ? "default" : "outline"}
+                  size="sm"
+                  className="text-[10px]"
+                  onClick={(e) => handleStatusClick(e, "Interested")}
+                  data-testid={`button-interested-${item.id}`}
+                >
+                  Int
+                </Button>
+                <Button
+                  variant={item.status === "Watching" ? "default" : "outline"}
+                  size="sm"
+                  className="text-[10px]"
+                  onClick={(e) => handleStatusClick(e, "Watching")}
+                  data-testid={`button-watching-${item.id}`}
+                >
+                  Now
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 text-[11px] px-2"
-                  onClick={(e) => handleStatusClick(e, "Want to Watch")}
-                  data-testid={`button-unwatched-${item.id}`}
+                  className="text-[10px]"
+                  onClick={(e) => handleStatusClick(e, "Watched")}
+                  data-testid={`button-watched-${item.id}`}
                 >
-                  Move to Hotlist
+                  Done
                 </Button>
-              )}
+              </>
+            )}
+            {isWatched && (
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 ml-auto"
-                onClick={handleShare}
-                data-testid={`button-share-${item.id}`}
+                variant="outline"
+                size="sm"
+                className="text-[10px]"
+                onClick={(e) => handleStatusClick(e, "Want to Watch")}
+                data-testid={`button-unwatched-${item.id}`}
               >
-                <Share2 className="w-3.5 h-3.5" />
+                Undo
               </Button>
-            </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleShare}
+              data-testid={`button-share-${item.id}`}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </Button>
           </div>
         </div>
       </motion.div>

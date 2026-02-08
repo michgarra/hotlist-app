@@ -7,7 +7,7 @@ import { DetailModal } from "@/components/DetailModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, Plus, Search, Filter, Loader2, Tv, BookOpen, Headphones } from "lucide-react";
+import { Flame, Plus, Search, Filter, Loader2, Tv, BookOpen, Headphones, Settings, User } from "lucide-react";
 import flameLogo from "@/assets/flame-logo.png";
 import type { Recommendation } from "@shared/schema";
 
@@ -100,14 +100,11 @@ export default function Dashboard() {
             <h1 className="text-lg font-bold tracking-tight">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/80 toggle-elevate toggle-elevated rounded-full" data-testid="button-shows-tab">
-              <Tv className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="text-white/80" data-testid="button-settings">
+              <Settings className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 rounded-full" disabled title="Books - Coming Soon" data-testid="button-books-tab">
-              <BookOpen className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 rounded-full" disabled title="Podcasts - Coming Soon" data-testid="button-podcasts-tab">
-              <Headphones className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="text-white/80" data-testid="button-profile">
+              <User className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -140,7 +137,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="px-4 py-3 space-y-2">
+        <div className="px-3 py-2 space-y-2">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -228,7 +225,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="flex-1 px-4 pb-24 space-y-2" data-testid="list-recommendations">
+        <div className="flex-1 px-3 pb-24 space-y-1.5" data-testid="list-recommendations">
           {displayItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Flame className="w-12 h-12 text-muted-foreground/30 mb-4" />
