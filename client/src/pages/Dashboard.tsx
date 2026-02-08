@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Flame, Plus, Search, Filter, Loader2, Tv, BookOpen, Headphones } from "lucide-react";
+import flameLogo from "@assets/57D820A9-FFE6-4E56-8727-E26A6F22BD3C_1_201_a_1770541580648.jpeg";
 import type { Recommendation } from "@shared/schema";
 
 export default function Dashboard() {
@@ -95,7 +96,7 @@ export default function Dashboard() {
       <header className="sticky top-0 z-50 bg-primary text-white" data-testid="header-main">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <Flame className="w-6 h-6" />
+            <img src={flameLogo} alt="Hotlist flame" className="w-7 h-7 object-contain" />
             <h1 className="text-lg font-bold tracking-tight">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-1">
