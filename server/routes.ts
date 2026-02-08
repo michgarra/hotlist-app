@@ -171,7 +171,7 @@ export async function registerRoutes(
         imdbRating: 8.7,
         seasons: 2,
         episodes: 19,
-        overview: "Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives.",
+        overview: "Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives. When a mysterious colleague appears outside of work, it begins a journey to discover the truth about their jobs.",
         cast: "Adam Scott, Zach Cherry, Britt Lower, Tramell Tillman, Jen Tullock",
         director: "Ben Stiller",
       });
@@ -187,7 +187,7 @@ export async function registerRoutes(
         posterUrl: "https://image.tmdb.org/t/p/w342/czembW0Rk1Ke7lCJGahbOhdCuhV.jpg",
         imdbRating: 8.1,
         runtime: 166,
-        overview: "Paul Atreides unites with the Fremen to seek revenge against those who destroyed his family.",
+        overview: "Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the known universe, Paul endeavors to prevent a terrible future only he can foresee.",
         cast: "Timothee Chalamet, Zendaya, Austin Butler, Florence Pugh, Josh Brolin",
         director: "Denis Villeneuve",
       });
@@ -203,7 +203,7 @@ export async function registerRoutes(
         imdbRating: 8.6,
         seasons: 3,
         episodes: 28,
-        overview: "A young chef from fine dining returns to Chicago to run his family's sandwich shop.",
+        overview: "Carmy, a young fine-dining chef, comes home to Chicago to run his family sandwich shop. As he fights to transform the shop and himself, he works alongside a rough-around-the-edges crew that ultimately reveal themselves as his chosen family.",
         cast: "Jeremy Allen White, Ayo Edebiri, Ebon Moss-Bachrach, Lionel Boyce, Liza Colon-Zayas",
         director: "Christopher Storer",
       });
@@ -218,7 +218,7 @@ export async function registerRoutes(
         posterUrl: "https://image.tmdb.org/t/p/w342/sh7Rg8Er3tFcN9BpKIPOMvALgZd.jpg",
         imdbRating: 6.8,
         runtime: 109,
-        overview: "A team of journalists travel across a dystopian future America during a civil conflict.",
+        overview: "In the near future, a group of war journalists attempt to survive while reporting the truth as the United States stands on the brink of civil war. Navigating a dangerous cross-country journey from New York to Washington D.C., the team faces escalating tensions as they race to document the conflict before it consumes everything.",
         cast: "Kirsten Dunst, Wagner Moura, Cailee Spaeny, Stephen McKinley Henderson, Jesse Plemons",
         director: "Alex Garland",
       });
