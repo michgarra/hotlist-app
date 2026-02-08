@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Star, Flame, Tv, Film, GripVertical, RefreshCw } from "lucide-react";
+import { Share2, Star, Flame, Tv, Film, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
 
@@ -90,8 +90,6 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
       >
         <div className="p-2">
           <div className="flex items-start gap-2">
-            <GripVertical className="w-4 h-4 text-muted-foreground/40 flex-shrink-0 mt-1" />
-
             <div className="flex-shrink-0 w-10 h-14 rounded overflow-hidden bg-muted" data-testid={`img-poster-${item.id}`}>
               {item.posterUrl ? (
                 <img
