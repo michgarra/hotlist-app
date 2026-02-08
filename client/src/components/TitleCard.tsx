@@ -137,7 +137,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   onClick={(e) => handleStatusClick(e, "Interested")}
                   data-testid={`button-interested-${item.id}`}
                 >
-                  Int
+                  Hot
                 </Button>
                 <Button
                   variant={item.status === "Watching" ? "default" : "outline"}
@@ -146,7 +146,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   onClick={(e) => handleStatusClick(e, "Watching")}
                   data-testid={`button-watching-${item.id}`}
                 >
-                  Now
+                  Watching
                 </Button>
                 <Button
                   variant="outline"
@@ -155,7 +155,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   onClick={(e) => handleStatusClick(e, "Watched")}
                   data-testid={`button-watched-${item.id}`}
                 >
-                  Done
+                  Watched
                 </Button>
               </>
             )}
