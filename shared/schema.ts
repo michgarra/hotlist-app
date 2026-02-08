@@ -8,6 +8,7 @@ export const userProfiles = pgTable("user_profiles", {
   gender: text("gender").notNull(),
   ageRange: text("age_range").notNull(),
   streamingApps: text("streaming_apps").array().notNull(),
+  preferredRating: text("preferred_rating").notNull().default("imdb"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

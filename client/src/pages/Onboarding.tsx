@@ -31,6 +31,7 @@ export default function Onboarding() {
   const [friendsList, setFriendsList] = useState<string[]>([]);
   const [newFriend, setNewFriend] = useState("");
   const [friendError, setFriendError] = useState("");
+  const [preferredRating, setPreferredRating] = useState("");
   const [saving, setSaving] = useState(false);
 
   const canProceedStep1 = name.trim() && gender && ageRange;
@@ -66,6 +67,7 @@ export default function Onboarding() {
         gender,
         ageRange,
         streamingApps: selectedApps,
+        preferredRating,
       });
 
       for (const friendName of friendsList) {
@@ -86,6 +88,7 @@ export default function Onboarding() {
     "Tell us about yourself",
     "Your streaming apps",
     "Add your friends",
+    "Your rating preference",
   ];
 
   return (
@@ -98,9 +101,10 @@ export default function Onboarding() {
         </div>
 
         <div className="flex gap-2 mb-6 justify-center">
-          <div className={`h-1 w-12 rounded-full transition-colors ${step >= 1 ? "bg-primary" : "bg-white/20"}`} />
-          <div className={`h-1 w-12 rounded-full transition-colors ${step >= 2 ? "bg-primary" : "bg-white/20"}`} />
-          <div className={`h-1 w-12 rounded-full transition-colors ${step >= 3 ? "bg-primary" : "bg-white/20"}`} />
+          <div className={`h-1 w-10 rounded-full transition-colors ${step >= 1 ? "bg-primary" : "bg-white/20"}`} />
+          <div className={`h-1 w-10 rounded-full transition-colors ${step >= 2 ? "bg-primary" : "bg-white/20"}`} />
+          <div className={`h-1 w-10 rounded-full transition-colors ${step >= 3 ? "bg-primary" : "bg-white/20"}`} />
+          <div className={`h-1 w-10 rounded-full transition-colors ${step >= 4 ? "bg-primary" : "bg-white/20"}`} />
         </div>
 
         {step === 1 && (
@@ -293,7 +297,63 @@ export default function Onboarding() {
               <Button
                 className="flex-1"
                 size="lg"
-                disabled={saving}
+                onClick={() => setStep(4)}
+                data-testid="button-next-step3"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-6" data-testid="onboarding-step-4">
+            <div>
+              <label className="text-white/70 text-xs font-medium uppercase tracking-wider mb-4 block">
+                Which rating critic do you prefer?
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPreferredRating("imdb")}
+                  className={`flex flex-col items-center justify-center p-5 rounded-lg transition-all border-2 ${
+                    preferredRating === "imdb"
+                      ? "bg-yellow-600/20 text-yellow-400 border-yellow-500 scale-[1.02]"
+                      : "bg-white/5 text-white/60 border-white/10 hover-elevate"
+                  }`}
+                  data-testid="button-rating-imdb"
+                >
+                  <span className="text-2xl font-bold mb-1">IMDb</span>
+                  <span className="text-xs opacity-70">/10 rating</span>
+                </button>
+                <button
+                  onClick={() => setPreferredRating("rt")}
+                  className={`flex flex-col items-center justify-center p-5 rounded-lg transition-all border-2 ${
+                    preferredRating === "rt"
+                      ? "bg-red-600/20 text-red-400 border-red-500 scale-[1.02]"
+                      : "bg-white/5 text-white/60 border-white/10 hover-elevate"
+                  }`}
+                  data-testid="button-rating-rt"
+                >
+                  <span className="text-2xl font-bold mb-1">RT</span>
+                  <span className="text-xs opacity-70">Rotten Tomatoes %</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-4">
+              <Button
+                variant="outline"
+                className="flex-1 border-white/20 text-white"
+                onClick={() => setStep(3)}
+                data-testid="button-back-step4"
+              >
+                Back
+              </Button>
+              <Button
+                className="flex-1"
+                size="lg"
+                disabled={!preferredRating || saving}
                 onClick={handleFinish}
                 data-testid="button-finish"
               >

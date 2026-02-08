@@ -10,7 +10,7 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - **External API**: TMDB (The Movie Database) for auto-populating titles with poster images, cast, directors, ratings, synopsis
 
 ## Key Features
-- Two-step onboarding: name/gender/age, then streaming apps (AU market)
+- Four-step onboarding: name/gender/age → streaming apps (AU market) → add friends → rating preference (IMDb or Rotten Tomatoes)
 - Two-tab view: Hotlist (to watch) and Watched
 - Compact title cards with poster thumbnails, ratings, platform info, grip icon for drag affordance
 - TMDB-powered search when adding titles (auto-fills metadata)
@@ -23,12 +23,12 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - Settings and Profile buttons in header
 
 ## Project Structure
-- `shared/schema.ts` - Database schema and types (recommendations + userProfiles)
+- `shared/schema.ts` - Database schema and types (recommendations, userProfiles, friends)
 - `shared/routes.ts` - API route definitions
 - `server/routes.ts` - Express route handlers (includes /api/profile)
 - `server/storage.ts` - Database storage layer
 - `server/tmdb.ts` - TMDB API integration
-- `client/src/pages/Onboarding.tsx` - Two-step onboarding flow
+- `client/src/pages/Onboarding.tsx` - Four-step onboarding flow
 - `client/src/pages/Dashboard.tsx` - Main page (gated behind onboarding)
 - `client/src/components/TitleCard.tsx` - Compact list card with Trello-like styling
 - `client/src/components/AddTitleSheet.tsx` - Add title with TMDB search
