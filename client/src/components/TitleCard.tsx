@@ -164,10 +164,10 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                 variant="outline"
                 size="sm"
                 className="text-[10px]"
-                onClick={(e) => handleStatusClick(e, "Want to Watch")}
+                onClick={(e) => handleStatusClick(e, "Watching")}
                 data-testid={`button-unwatched-${item.id}`}
               >
-                Undo
+                Watching
               </Button>
             )}
             <Button
