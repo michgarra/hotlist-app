@@ -1,38 +1,50 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import {
+  recommendations,
+  type Recommendation,
+  type InsertRecommendation,
+  type UpdateRecommendationRequest,
+} from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getRecommendations(): Promise<Recommendation[]>;
+  getRecommendation(id: number): Promise<Recommendation | undefined>;
+  createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
+  updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation>;
+  deleteRecommendation(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getRecommendations(): Promise<Recommendation[]> {
+    return await db.select().from(recommendations).orderBy(desc(recommendations.createdAt));
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getRecommendation(id: number): Promise<Recommendation | undefined> {
+    const [item] = await db.select().from(recommendations).where(eq(recommendations.id, id));
+    return item;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createRecommendation(insertRecommendation: InsertRecommendation): Promise<Recommendation> {
+    const [item] = await db
+      .insert(recommendations)
+      .values(insertRecommendation)
+      .returning();
+    return item;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation> {
+    const [item] = await db
+      .update(recommendations)
+      .set(updates)
+      .where(eq(recommendations.id, id))
+      .returning();
+    return item;
+  }
+
+  async deleteRecommendation(id: number): Promise<void> {
+    await db.delete(recommendations).where(eq(recommendations.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
