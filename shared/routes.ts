@@ -1,17 +1,9 @@
 import { z } from 'zod';
-import { insertRecommendationSchema, recommendations } from './schema';
+import { insertRecommendationSchema } from './schema';
 
 export const errorSchemas = {
-  validation: z.object({
-    message: z.string(),
-    field: z.string().optional(),
-  }),
-  notFound: z.object({
-    message: z.string(),
-  }),
-  internal: z.object({
-    message: z.string(),
-  }),
+  validation: z.object({ message: z.string(), field: z.string().optional() }),
+  notFound: z.object({ message: z.string() }),
 };
 
 export const api = {
@@ -19,44 +11,41 @@ export const api = {
     list: {
       method: 'GET' as const,
       path: '/api/recommendations' as const,
-      responses: {
-        200: z.array(z.custom<typeof recommendations.$inferSelect>()),
-      },
+      responses: { 200: z.array(z.any()) },
     },
     get: {
       method: 'GET' as const,
       path: '/api/recommendations/:id' as const,
-      responses: {
-        200: z.custom<typeof recommendations.$inferSelect>(),
-        404: errorSchemas.notFound,
-      },
+      responses: { 200: z.any(), 404: errorSchemas.notFound },
     },
     create: {
       method: 'POST' as const,
       path: '/api/recommendations' as const,
       input: insertRecommendationSchema,
-      responses: {
-        201: z.custom<typeof recommendations.$inferSelect>(),
-        400: errorSchemas.validation,
-      },
+      responses: { 201: z.any(), 400: errorSchemas.validation },
     },
     update: {
       method: 'PATCH' as const,
       path: '/api/recommendations/:id' as const,
       input: insertRecommendationSchema.partial(),
-      responses: {
-        200: z.custom<typeof recommendations.$inferSelect>(),
-        400: errorSchemas.validation,
-        404: errorSchemas.notFound,
-      },
+      responses: { 200: z.any(), 400: errorSchemas.validation, 404: errorSchemas.notFound },
     },
     delete: {
       method: 'DELETE' as const,
       path: '/api/recommendations/:id' as const,
-      responses: {
-        204: z.void(),
-        404: errorSchemas.notFound,
-      },
+      responses: { 204: z.void(), 404: errorSchemas.notFound },
+    },
+  },
+  tmdb: {
+    search: {
+      method: 'GET' as const,
+      path: '/api/tmdb/search' as const,
+      responses: { 200: z.array(z.any()) },
+    },
+    details: {
+      method: 'GET' as const,
+      path: '/api/tmdb/details/:id' as const,
+      responses: { 200: z.any(), 404: errorSchemas.notFound },
     },
   },
 };
