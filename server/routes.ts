@@ -22,6 +22,28 @@ export async function registerRoutes(
     res.json(item);
   });
 
+  app.get("/api/shared/:id", async (req, res) => {
+    const item = await storage.getRecommendation(Number(req.params.id));
+    if (!item) return res.status(404).json({ message: "Not found" });
+    res.json({
+      id: item.id,
+      title: item.title,
+      type: item.type,
+      genre: item.genre,
+      platform: item.platform,
+      posterUrl: item.posterUrl,
+      imdbRating: item.imdbRating,
+      overview: item.overview,
+      releaseDate: item.releaseDate,
+      runtime: item.runtime,
+      seasons: item.seasons,
+      episodes: item.episodes,
+      cast: item.cast,
+      director: item.director,
+      tmdbId: item.tmdbId,
+    });
+  });
+
   app.post(api.recommendations.create.path, async (req, res) => {
     try {
       const input = api.recommendations.create.input.parse(req.body);

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import Onboarding from "@/pages/Onboarding";
+import SharedTitle from "@/pages/SharedTitle";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -55,6 +56,7 @@ function Router() {
     <Switch>
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/onboarding" component={OnboardingRoute} />
+      <Route path="/shared/:id" component={SharedTitle} />
       <Route component={NotFound} />
     </Switch>
   );
