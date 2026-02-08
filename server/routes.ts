@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { insertUserProfileSchema } from "@shared/schema";
 import { searchTmdb, getTmdbDetails } from "./tmdb";
 
 export async function registerRoutes(
@@ -52,6 +53,30 @@ export async function registerRoutes(
   app.delete(api.recommendations.delete.path, async (req, res) => {
     await storage.deleteRecommendation(Number(req.params.id));
     res.status(204).send();
+  });
+
+  app.get("/api/profile", async (_req, res) => {
+    const profile = await storage.getUserProfile();
+    if (!profile) return res.status(404).json({ message: "No profile found" });
+    res.json(profile);
+  });
+
+  app.post("/api/profile", async (req, res) => {
+    try {
+      const input = insertUserProfileSchema.parse(req.body);
+      const existing = await storage.getUserProfile();
+      if (existing) {
+        const updated = await storage.updateUserProfile(existing.id, input);
+        return res.json(updated);
+      }
+      const profile = await storage.createUserProfile(input);
+      res.status(201).json(profile);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: err.message || "Failed to save profile" });
+    }
   });
 
   app.get(api.tmdb.search.path, async (req, res) => {

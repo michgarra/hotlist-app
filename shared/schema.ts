@@ -2,6 +2,23 @@ import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const userProfiles = pgTable("user_profiles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  gender: text("gender").notNull(),
+  ageRange: text("age_range").notNull(),
+  streamingApps: text("streaming_apps").array().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
+
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),

@@ -1,9 +1,12 @@
 import { db } from "./db";
 import {
   recommendations,
+  userProfiles,
   type Recommendation,
   type InsertRecommendation,
   type UpdateRecommendationRequest,
+  type UserProfile,
+  type InsertUserProfile,
 } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -13,6 +16,9 @@ export interface IStorage {
   createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
   updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation>;
   deleteRecommendation(id: number): Promise<void>;
+  getUserProfile(): Promise<UserProfile | undefined>;
+  createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
+  updateUserProfile(id: number, updates: Partial<InsertUserProfile>): Promise<UserProfile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -44,6 +50,21 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRecommendation(id: number): Promise<void> {
     await db.delete(recommendations).where(eq(recommendations.id, id));
+  }
+
+  async getUserProfile(): Promise<UserProfile | undefined> {
+    const [profile] = await db.select().from(userProfiles).limit(1);
+    return profile;
+  }
+
+  async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
+    const [item] = await db.insert(userProfiles).values(profile).returning();
+    return item;
+  }
+
+  async updateUserProfile(id: number, updates: Partial<InsertUserProfile>): Promise<UserProfile> {
+    const [item] = await db.update(userProfiles).set(updates).where(eq(userProfiles.id, id)).returning();
+    return item;
   }
 }
 

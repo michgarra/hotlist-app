@@ -10,25 +10,27 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - **External API**: TMDB (The Movie Database) for auto-populating titles with poster images, cast, directors, ratings, synopsis
 
 ## Key Features
+- Two-step onboarding: name/gender/age, then streaming apps (AU market)
 - Two-tab view: Hotlist (to watch) and Watched
-- Compact title cards with poster thumbnails, ratings, platform info
+- Compact title cards with poster thumbnails, ratings, platform info, grip icon for drag affordance
 - TMDB-powered search when adding titles (auto-fills metadata)
-- Status flow: Want to Watch / Interested / Watching / Watched
+- Status flow: Want to Watch / Hot / Watching / Watched
 - Hot Rating (flame meter 1-5) when marking items as Watched
 - Share via WhatsApp/native share
 - Swipe left to delete
 - Filter by type, genre, platform, friend, hot rating
 - Detail modal with cast, director, synopsis, runtime/episodes
-- Multi-list architecture: Shows (orange), Books (green), Podcasts (purple) - Shows active, others coming soon
+- Settings and Profile buttons in header
 
 ## Project Structure
-- `shared/schema.ts` - Database schema and types
+- `shared/schema.ts` - Database schema and types (recommendations + userProfiles)
 - `shared/routes.ts` - API route definitions
-- `server/routes.ts` - Express route handlers
+- `server/routes.ts` - Express route handlers (includes /api/profile)
 - `server/storage.ts` - Database storage layer
 - `server/tmdb.ts` - TMDB API integration
-- `client/src/pages/Dashboard.tsx` - Main page
-- `client/src/components/TitleCard.tsx` - Compact list card
+- `client/src/pages/Onboarding.tsx` - Two-step onboarding flow
+- `client/src/pages/Dashboard.tsx` - Main page (gated behind onboarding)
+- `client/src/components/TitleCard.tsx` - Compact list card with Trello-like styling
 - `client/src/components/AddTitleSheet.tsx` - Add title with TMDB search
 - `client/src/components/HotRatingDialog.tsx` - Flame rating dialog
 - `client/src/components/DetailModal.tsx` - Full detail view
