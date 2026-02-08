@@ -53,6 +53,7 @@ export const recommendations = pgTable("recommendations", {
   runtime: integer("runtime"),
   seasons: integer("seasons"),
   episodes: integer("episodes"),
+  lastKnownSeasons: integer("last_known_seasons"),
   cast: text("cast_list"),
   director: text("director"),
   createdAt: timestamp("created_at").defaultNow(),
