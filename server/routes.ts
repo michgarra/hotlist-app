@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertUserProfileSchema } from "@shared/schema";
+import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
 import { searchTmdb, getTmdbDetails } from "./tmdb";
 
 export async function registerRoutes(
@@ -77,6 +77,33 @@ export async function registerRoutes(
       }
       res.status(400).json({ message: err.message || "Failed to save profile" });
     }
+  });
+
+  app.get("/api/friends", async (_req, res) => {
+    const friendsList = await storage.getFriends();
+    res.json(friendsList);
+  });
+
+  app.post("/api/friends", async (req, res) => {
+    try {
+      const input = insertFriendSchema.parse(req.body);
+      const existing = await storage.findFriendByName(input.name.trim());
+      if (existing) {
+        return res.status(409).json({ message: "Friend already exists", friend: existing });
+      }
+      const friend = await storage.createFriend({ name: input.name.trim() });
+      res.status(201).json(friend);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: err.message || "Failed to add friend" });
+    }
+  });
+
+  app.delete("/api/friends/:id", async (req, res) => {
+    await storage.deleteFriend(Number(req.params.id));
+    res.status(204).send();
   });
 
   app.get(api.tmdb.search.path, async (req, res) => {

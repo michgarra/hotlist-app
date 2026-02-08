@@ -28,6 +28,7 @@ export default function Dashboard() {
 
   const [hotRatingItem, setHotRatingItem] = useState<Recommendation | null>(null);
   const [detailItem, setDetailItem] = useState<Recommendation | null>(null);
+  const [editItem, setEditItem] = useState<Recommendation | null>(null);
 
   const handleStatusChange = (id: number, status: string) => {
     updateMutation.mutate({ id, status });
@@ -264,7 +265,18 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      <AddTitleSheet open={isAddOpen} onOpenChange={setIsAddOpen} />
+      <AddTitleSheet
+        open={isAddOpen || !!editItem}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsAddOpen(false);
+            setEditItem(null);
+          } else {
+            setIsAddOpen(true);
+          }
+        }}
+        editItem={editItem}
+      />
       <HotRatingDialog
         item={hotRatingItem}
         open={!!hotRatingItem}
@@ -275,6 +287,10 @@ export default function Dashboard() {
         item={detailItem}
         open={!!detailItem}
         onOpenChange={(open) => !open && setDetailItem(null)}
+        onEdit={(item) => {
+          setDetailItem(null);
+          setEditItem(item);
+        }}
       />
     </div>
   );

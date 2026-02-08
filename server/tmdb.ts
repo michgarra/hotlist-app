@@ -77,8 +77,8 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const cast = (credits.cast || []).slice(0, 5).map((c: any) => c.name);
   const director = (credits.crew || []).find((c: any) => c.job === "Director")?.name || null;
 
-  const usProviders = providers.results?.US || providers.results?.AU || {};
-  const flatrate = usProviders.flatrate || [];
+  const auProviders = providers.results?.AU || providers.results?.US || {};
+  const flatrate = auProviders.flatrate || [];
   const platform = flatrate.length > 0 ? flatrate[0].provider_name : null;
 
   return {

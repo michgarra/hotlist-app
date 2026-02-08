@@ -2,13 +2,16 @@ import { db } from "./db";
 import {
   recommendations,
   userProfiles,
+  friends,
   type Recommendation,
   type InsertRecommendation,
   type UpdateRecommendationRequest,
   type UserProfile,
   type InsertUserProfile,
+  type Friend,
+  type InsertFriend,
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ilike } from "drizzle-orm";
 
 export interface IStorage {
   getRecommendations(): Promise<Recommendation[]>;
@@ -19,6 +22,10 @@ export interface IStorage {
   getUserProfile(): Promise<UserProfile | undefined>;
   createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
   updateUserProfile(id: number, updates: Partial<InsertUserProfile>): Promise<UserProfile>;
+  getFriends(): Promise<Friend[]>;
+  createFriend(friend: InsertFriend): Promise<Friend>;
+  deleteFriend(id: number): Promise<void>;
+  findFriendByName(name: string): Promise<Friend | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -64,6 +71,24 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserProfile(id: number, updates: Partial<InsertUserProfile>): Promise<UserProfile> {
     const [item] = await db.update(userProfiles).set(updates).where(eq(userProfiles.id, id)).returning();
+    return item;
+  }
+
+  async getFriends(): Promise<Friend[]> {
+    return await db.select().from(friends).orderBy(friends.name);
+  }
+
+  async createFriend(friend: InsertFriend): Promise<Friend> {
+    const [item] = await db.insert(friends).values(friend).returning();
+    return item;
+  }
+
+  async deleteFriend(id: number): Promise<void> {
+    await db.delete(friends).where(eq(friends.id, id));
+  }
+
+  async findFriendByName(name: string): Promise<Friend | undefined> {
+    const [item] = await db.select().from(friends).where(ilike(friends.name, name));
     return item;
   }
 }

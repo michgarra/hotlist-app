@@ -1,15 +1,17 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Star, Flame, Clock, Tv, Film, Users, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Pencil } from "lucide-react";
 import type { Recommendation } from "@shared/schema";
 
 interface DetailModalProps {
   item: Recommendation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (item: Recommendation) => void;
 }
 
-export function DetailModal({ item, open, onOpenChange }: DetailModalProps) {
+export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalProps) {
   if (!item) return null;
 
   const castList = item.cast ? item.cast.split(",").map(c => c.trim()) : [];
@@ -118,6 +120,22 @@ export function DetailModal({ item, open, onOpenChange }: DetailModalProps) {
               </p>
               {item.notes && <p className="text-xs text-muted-foreground italic mt-1">"{item.notes}"</p>}
             </div>
+          )}
+
+          {onEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                onOpenChange(false);
+                onEdit(item);
+              }}
+              data-testid="button-edit-title"
+            >
+              <Pencil className="w-3.5 h-3.5 mr-2" />
+              Edit Details
+            </Button>
           )}
         </div>
       </DialogContent>

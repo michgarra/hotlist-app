@@ -59,6 +59,34 @@ export function useDeleteRecommendation() {
   });
 }
 
+export function useFriends() {
+  return useQuery({
+    queryKey: ["/api/friends"],
+  });
+}
+
+export function useCreateFriend() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const res = await fetch("/api/friends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.status === 409) {
+        const data = await res.json();
+        return data.friend;
+      }
+      if (!res.ok) throw new Error("Failed to add friend");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+    },
+  });
+}
+
 export function useTmdbSearch(query: string) {
   return useQuery({
     queryKey: ["/api/tmdb/search", query],

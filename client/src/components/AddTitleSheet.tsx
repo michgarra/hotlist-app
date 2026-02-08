@@ -3,13 +3,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Loader2, Film, Tv, Star, Plus, ArrowLeft } from "lucide-react";
-import { useTmdbSearch, useCreateRecommendation } from "@/hooks/use-recommendations";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Loader2, Film, Tv, Star, Plus, ArrowLeft, UserPlus } from "lucide-react";
+import { useTmdbSearch, useCreateRecommendation, useUpdateRecommendation, useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useToast } from "@/hooks/use-toast";
+import type { Recommendation } from "@shared/schema";
 
 interface AddTitleSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editItem?: Recommendation | null;
 }
 
 interface TmdbResult {
@@ -22,7 +25,7 @@ interface TmdbResult {
   rating: number;
 }
 
-export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
+export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<TmdbResult | null>(null);
@@ -30,10 +33,34 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
   const [notes, setNotes] = useState("");
   const [platform, setPlatform] = useState("");
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [newFriendName, setNewFriendName] = useState("");
 
   const { data: searchResults = [], isLoading: isSearching } = useTmdbSearch(debouncedQuery);
   const createMutation = useCreateRecommendation();
+  const updateMutation = useUpdateRecommendation();
+  const { data: friendsList = [] } = useFriends();
+  const createFriendMutation = useCreateFriend();
   const { toast } = useToast();
+
+  const isEditing = !!editItem;
+
+  useEffect(() => {
+    if (editItem && open) {
+      setRecommendedBy(editItem.recommendedBy || "");
+      setNotes(editItem.notes || "");
+      setPlatform(editItem.platform || "");
+      setSelectedItem({
+        id: editItem.tmdbId || 0,
+        title: editItem.title,
+        type: editItem.type as "Movie" | "TV Show",
+        posterUrl: editItem.posterUrl || null,
+        releaseDate: editItem.releaseDate || null,
+        overview: editItem.overview || "",
+        rating: editItem.imdbRating || 0,
+      });
+    }
+  }, [editItem, open]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
@@ -54,19 +81,32 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
     setIsFetchingDetails(false);
   }, []);
 
+  const handleAddFriend = async () => {
+    const trimmed = newFriendName.trim();
+    if (!trimmed) return;
+    try {
+      await createFriendMutation.mutateAsync(trimmed);
+      setRecommendedBy(trimmed);
+      setNewFriendName("");
+      setShowAddFriend(false);
+    } catch {
+      toast({ title: "Error", description: "Failed to add friend", variant: "destructive" });
+    }
+  };
+
   const handleAdd = async () => {
     if (!selectedItem) return;
     try {
       const details = selectedItem as any;
-      await createMutation.mutateAsync({
+      const payload = {
         title: selectedItem.title,
         type: selectedItem.type,
-        genre: details.genres ? details.genres.join(", ") : null,
+        genre: details.genres ? (Array.isArray(details.genres) ? details.genres.join(", ") : details.genres) : null,
         recommendedBy: recommendedBy || null,
         platform: platform || details.platform || null,
-        status: "Want to Watch",
+        status: isEditing ? editItem!.status : "Want to Watch",
         notes: notes || null,
-        tmdbId: selectedItem.id,
+        tmdbId: selectedItem.id || null,
         posterUrl: details.posterUrl || selectedItem.posterUrl || null,
         imdbRating: details.imdbRating || selectedItem.rating || null,
         overview: details.overview || selectedItem.overview || null,
@@ -76,13 +116,20 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
         episodes: details.episodes || null,
         cast: details.cast ? (Array.isArray(details.cast) ? details.cast.join(", ") : details.cast) : null,
         director: details.director || null,
-        hotRating: null,
-      });
-      toast({ title: "Added!", description: `"${selectedItem.title}" added to your Hotlist.` });
+        hotRating: isEditing ? editItem!.hotRating : null,
+      };
+
+      if (isEditing) {
+        await updateMutation.mutateAsync({ id: editItem!.id, ...payload });
+        toast({ title: "Updated!", description: `"${selectedItem.title}" has been updated.` });
+      } else {
+        await createMutation.mutateAsync(payload);
+        toast({ title: "Added!", description: `"${selectedItem.title}" added to your Hotlist.` });
+      }
       resetForm();
       onOpenChange(false);
     } catch (err) {
-      toast({ title: "Error", description: "Failed to add title", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to save", variant: "destructive" });
     }
   };
 
@@ -93,6 +140,8 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
     setRecommendedBy("");
     setNotes("");
     setPlatform("");
+    setShowAddFriend(false);
+    setNewFriendName("");
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -100,21 +149,23 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
     onOpenChange(open);
   };
 
+  const friends = (friendsList as any[]) || [];
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[440px] max-h-[85vh] overflow-y-auto" data-testid="dialog-add-title">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {selectedItem && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedItem(null)} data-testid="button-back-search">
+            {selectedItem && !isEditing && (
+              <Button variant="ghost" size="icon" onClick={() => setSelectedItem(null)} data-testid="button-back-search">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             )}
-            {selectedItem ? "Add Details" : "Search Title"}
+            {isEditing ? "Edit Title" : selectedItem ? "Add Details" : "Search Title"}
           </DialogTitle>
         </DialogHeader>
 
-        {!selectedItem ? (
+        {!selectedItem && !isEditing ? (
           <div className="space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -154,7 +205,7 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{result.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[11px] text-muted-foreground uppercase font-medium">{result.type === "Movie" ? "Film" : "TV"}</span>
                         {result.releaseDate && <span className="text-[11px] text-muted-foreground">{result.releaseDate.substring(0, 4)}</span>}
                         {result.rating > 0 && (
@@ -180,7 +231,7 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
               </p>
             )}
           </div>
-        ) : (
+        ) : selectedItem ? (
           <div className="space-y-4">
             <div className="flex gap-3">
               {selectedItem.posterUrl && (
@@ -212,25 +263,65 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Where to watch</label>
                 <Input
-                  placeholder="Netflix, Hulu, Cinema..."
+                  placeholder="Auto-populated or type platform..."
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value)}
                   data-testid="input-platform"
                 />
               </div>
+
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Recommended by</label>
-                <Input
-                  placeholder="Friend's name"
-                  value={recommendedBy}
-                  onChange={(e) => setRecommendedBy(e.target.value)}
-                  data-testid="input-recommended-by"
-                />
+                {!showAddFriend ? (
+                  <div className="flex gap-2">
+                    <Select value={recommendedBy} onValueChange={(val) => {
+                      if (val === "__add_new__") {
+                        setShowAddFriend(true);
+                      } else {
+                        setRecommendedBy(val);
+                      }
+                    }}>
+                      <SelectTrigger className="flex-1" data-testid="select-friend">
+                        <SelectValue placeholder="Select a friend" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {friends.map((f: any) => (
+                          <SelectItem key={f.id} value={f.name} data-testid={`option-friend-${f.id}`}>
+                            {f.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__add_new__" data-testid="option-add-new-friend">
+                          <span className="flex items-center gap-1">
+                            <UserPlus className="w-3 h-3" /> Add new friend
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Friend's name"
+                      value={newFriendName}
+                      onChange={(e) => setNewFriendName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddFriend()}
+                      autoFocus
+                      data-testid="input-new-friend"
+                    />
+                    <Button size="sm" onClick={handleAddFriend} disabled={!newFriendName.trim() || createFriendMutation.isPending} data-testid="button-save-friend">
+                      Add
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowAddFriend(false)} data-testid="button-cancel-friend">
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
+
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Comments</label>
                 <Textarea
-                  placeholder='"Watch with the kids", "Date night movie"...'
+                  placeholder="Any quirky or relevant comments..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="resize-none min-h-[60px]"
@@ -241,19 +332,19 @@ export function AddTitleSheet({ open, onOpenChange }: AddTitleSheetProps) {
 
             <Button
               onClick={handleAdd}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending}
               className="w-full"
               data-testid="button-add-to-hotlist"
             >
-              {createMutation.isPending ? (
+              {(createMutation.isPending || updateMutation.isPending) ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <Plus className="w-4 h-4 mr-2" />
               )}
-              Add to Hotlist
+              {isEditing ? "Save Changes" : "Add to Hotlist"}
             </Button>
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );

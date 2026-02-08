@@ -19,6 +19,20 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 
+export const friends = pgTable("friends", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertFriendSchema = createInsertSchema(friends).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Friend = typeof friends.$inferSelect;
+export type InsertFriend = z.infer<typeof insertFriendSchema>;
+
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
