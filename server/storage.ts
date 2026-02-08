@@ -11,26 +11,29 @@ import {
   type Friend,
   type InsertFriend,
 } from "@shared/schema";
-import { eq, desc, ilike } from "drizzle-orm";
+import { eq, desc, ilike, and } from "drizzle-orm";
 
 export interface IStorage {
-  getRecommendations(): Promise<Recommendation[]>;
+  getRecommendations(userId: string): Promise<Recommendation[]>;
   getRecommendation(id: number): Promise<Recommendation | undefined>;
-  createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
+  createRecommendation(recommendation: InsertRecommendation & { userId: string }): Promise<Recommendation>;
   updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation>;
   deleteRecommendation(id: number): Promise<void>;
-  getUserProfile(): Promise<UserProfile | undefined>;
-  createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
-  updateUserProfile(id: number, updates: Partial<InsertUserProfile>): Promise<UserProfile>;
-  getFriends(): Promise<Friend[]>;
-  createFriend(friend: InsertFriend): Promise<Friend>;
+  findDuplicateRecommendation(userId: string, title: string, type: string, tmdbId?: number | null): Promise<Recommendation | undefined>;
+  getUserProfile(userId: string): Promise<UserProfile | undefined>;
+  createUserProfile(profile: InsertUserProfile & { userId: string }): Promise<UserProfile>;
+  updateUserProfile(id: number, updates: Partial<InsertUserProfile> & { userId: string }): Promise<UserProfile>;
+  getFriends(userId: string): Promise<Friend[]>;
+  createFriend(friend: InsertFriend & { userId: string }): Promise<Friend>;
   deleteFriend(id: number): Promise<void>;
-  findFriendByName(name: string): Promise<Friend | undefined>;
+  findFriendByName(userId: string, name: string): Promise<Friend | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getRecommendations(): Promise<Recommendation[]> {
-    return await db.select().from(recommendations).orderBy(desc(recommendations.createdAt));
+  async getRecommendations(userId: string): Promise<Recommendation[]> {
+    return await db.select().from(recommendations)
+      .where(eq(recommendations.userId, userId))
+      .orderBy(desc(recommendations.createdAt));
   }
 
   async getRecommendation(id: number): Promise<Recommendation | undefined> {
@@ -38,7 +41,7 @@ export class DatabaseStorage implements IStorage {
     return item;
   }
 
-  async createRecommendation(insertRecommendation: InsertRecommendation): Promise<Recommendation> {
+  async createRecommendation(insertRecommendation: InsertRecommendation & { userId: string }): Promise<Recommendation> {
     const [item] = await db
       .insert(recommendations)
       .values(insertRecommendation)
@@ -59,26 +62,45 @@ export class DatabaseStorage implements IStorage {
     await db.delete(recommendations).where(eq(recommendations.id, id));
   }
 
-  async getUserProfile(): Promise<UserProfile | undefined> {
-    const [profile] = await db.select().from(userProfiles).limit(1);
+  async findDuplicateRecommendation(userId: string, title: string, type: string, tmdbId?: number | null): Promise<Recommendation | undefined> {
+    if (tmdbId) {
+      const [item] = await db.select().from(recommendations)
+        .where(and(eq(recommendations.userId, userId), eq(recommendations.tmdbId, tmdbId)));
+      if (item) return item;
+    }
+    const [item] = await db.select().from(recommendations)
+      .where(and(
+        eq(recommendations.userId, userId),
+        ilike(recommendations.title, title),
+        eq(recommendations.type, type)
+      ));
+    return item;
+  }
+
+  async getUserProfile(userId: string): Promise<UserProfile | undefined> {
+    const [profile] = await db.select().from(userProfiles)
+      .where(eq(userProfiles.userId, userId))
+      .limit(1);
     return profile;
   }
 
-  async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
+  async createUserProfile(profile: InsertUserProfile & { userId: string }): Promise<UserProfile> {
     const [item] = await db.insert(userProfiles).values(profile).returning();
     return item;
   }
 
-  async updateUserProfile(id: number, updates: Partial<InsertUserProfile>): Promise<UserProfile> {
+  async updateUserProfile(id: number, updates: Partial<InsertUserProfile> & { userId: string }): Promise<UserProfile> {
     const [item] = await db.update(userProfiles).set(updates).where(eq(userProfiles.id, id)).returning();
     return item;
   }
 
-  async getFriends(): Promise<Friend[]> {
-    return await db.select().from(friends).orderBy(friends.name);
+  async getFriends(userId: string): Promise<Friend[]> {
+    return await db.select().from(friends)
+      .where(eq(friends.userId, userId))
+      .orderBy(friends.name);
   }
 
-  async createFriend(friend: InsertFriend): Promise<Friend> {
+  async createFriend(friend: InsertFriend & { userId: string }): Promise<Friend> {
     const [item] = await db.insert(friends).values(friend).returning();
     return item;
   }
@@ -87,8 +109,9 @@ export class DatabaseStorage implements IStorage {
     await db.delete(friends).where(eq(friends.id, id));
   }
 
-  async findFriendByName(name: string): Promise<Friend | undefined> {
-    const [item] = await db.select().from(friends).where(ilike(friends.name, name));
+  async findFriendByName(userId: string, name: string): Promise<Friend | undefined> {
+    const [item] = await db.select().from(friends)
+      .where(and(eq(friends.userId, userId), ilike(friends.name, name)));
     return item;
   }
 }

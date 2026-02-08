@@ -1,9 +1,12 @@
-import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export * from "./models/auth";
+
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   gender: text("gender").notNull(),
   ageRange: text("age_range").notNull(),
@@ -14,6 +17,7 @@ export const userProfiles = pgTable("user_profiles", {
 
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
@@ -22,12 +26,14 @@ export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 
 export const friends = pgTable("friends", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertFriendSchema = createInsertSchema(friends).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
@@ -36,6 +42,7 @@ export type InsertFriend = z.infer<typeof insertFriendSchema>;
 
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
   title: text("title").notNull(),
   type: text("type").notNull(),
   genre: text("genre"),
@@ -61,6 +68,7 @@ export const recommendations = pgTable("recommendations", {
 
 export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 

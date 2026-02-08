@@ -1,21 +1,24 @@
-import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
 import Dashboard from "@/pages/Dashboard";
 import Onboarding from "@/pages/Onboarding";
+import Landing from "@/pages/Landing";
 import SharedTitle from "@/pages/SharedTitle";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { data: profile, isLoading, isError } = useQuery({
+function AuthenticatedApp() {
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
   });
 
-  if (isLoading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -23,18 +26,15 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     );
   }
 
-  if (isError || !profile) {
-    return <Redirect to="/onboarding" />;
+  if (!profile) {
+    return <Onboarding />;
   }
 
-  return <Component />;
+  return <Dashboard />;
 }
 
-function OnboardingRoute() {
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["/api/profile"],
-    retry: false,
-  });
+function AppContent() {
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -44,19 +44,15 @@ function OnboardingRoute() {
     );
   }
 
-  if (profile) {
-    return <Redirect to="/" />;
-  }
-
-  return <Onboarding />;
-}
-
-function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-      <Route path="/onboarding" component={OnboardingRoute} />
       <Route path="/shared/:id" component={SharedTitle} />
+      <Route path="/onboarding">
+        {user ? <Onboarding /> : <Landing />}
+      </Route>
+      <Route path="/">
+        {user ? <AuthenticatedApp /> : <Landing />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -67,7 +63,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );

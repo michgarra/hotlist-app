@@ -7,7 +7,9 @@ import { DetailModal } from "@/components/DetailModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, Plus, Search, Filter, Loader2, Tv, BookOpen, Headphones, Settings, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Flame, Plus, Search, Filter, Loader2, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import flameLogo from "@/assets/flame-logo.png";
 import type { Recommendation } from "@shared/schema";
 
@@ -15,6 +17,7 @@ export default function Dashboard() {
   const { data: items = [], isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
   const updateMutation = useUpdateRecommendation();
   const deleteMutation = useDeleteRecommendation();
+  const { user, logout } = useAuth();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -106,9 +109,17 @@ export default function Dashboard() {
             <Button variant="ghost" size="icon" className="text-white/80" data-testid="button-settings">
               <Settings className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white/80" data-testid="button-profile">
-              <User className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="text-white/80" onClick={() => logout()} data-testid="button-logout">
+              <LogOut className="w-4 h-4" />
             </Button>
+            {user && (
+              <Avatar className="w-7 h-7 ml-1" data-testid="avatar-user">
+                <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
+                <AvatarFallback className="text-[10px] bg-primary/20 text-white">
+                  {(user.firstName?.[0] || "U").toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            )}
           </div>
         </div>
       </header>

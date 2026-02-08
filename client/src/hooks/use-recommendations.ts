@@ -17,6 +17,10 @@ export function useCreateRecommendation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (res.status === 409) {
+        const errData = await res.json();
+        throw new Error(errData.message || "This title is already in your list");
+      }
       if (!res.ok) throw new Error("Failed to create");
       return res.json();
     },

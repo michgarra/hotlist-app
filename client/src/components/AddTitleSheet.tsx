@@ -128,8 +128,8 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
       }
       resetForm();
       onOpenChange(false);
-    } catch (err) {
-      toast({ title: "Error", description: "Failed to save", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed to save", variant: "destructive" });
     }
   };
 
