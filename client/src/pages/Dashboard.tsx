@@ -93,7 +93,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="page-dashboard">
-      <header className="sticky top-0 z-50 bg-primary text-white" data-testid="header-main">
+      <header className="sticky top-0 z-50 bg-black text-white" data-testid="header-main">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <img src={flameLogo} alt="Hotlist flame" className="w-7 h-7 object-contain" />
