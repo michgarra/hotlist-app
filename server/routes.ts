@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
-import { searchTmdb, getTmdbDetails } from "./tmdb";
+import { searchTmdb, getTmdbDetails, getTmdbSeasonCount } from "./tmdb";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -125,6 +125,34 @@ export async function registerRoutes(
       res.json(details);
     } catch (err: any) {
       res.status(404).json({ message: err.message || "Not found" });
+    }
+  });
+
+  app.get("/api/recommendations/:id/check-new-season", async (req, res) => {
+    try {
+      const item = await storage.getRecommendation(Number(req.params.id));
+      if (!item) return res.status(404).json({ message: "Not found" });
+      if (item.type !== "TV Show") return res.status(400).json({ message: "Not a TV show" });
+      if (!item.tmdbId) return res.status(400).json({ message: "No TMDB ID" });
+
+      const current = await getTmdbSeasonCount(item.tmdbId);
+      const lastKnown = item.lastKnownSeasons || item.seasons || 0;
+      const hasNewSeason = current.seasons > lastKnown;
+
+      await storage.updateRecommendation(item.id, {
+        seasons: current.seasons,
+        episodes: current.episodes,
+        lastKnownSeasons: hasNewSeason ? lastKnown : current.seasons,
+      });
+
+      res.json({
+        hasNewSeason,
+        currentSeasons: current.seasons,
+        lastKnownSeasons: lastKnown,
+        currentEpisodes: current.episodes,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to check seasons" });
     }
   });
 

@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Star, Flame, Tv, Film, GripVertical } from "lucide-react";
+import { Share2, Star, Flame, Tv, Film, GripVertical, RefreshCw } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
 
 interface TitleCardProps {
@@ -15,6 +16,7 @@ interface TitleCardProps {
 
 export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched }: TitleCardProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [seasonCheck, setSeasonCheck] = useState<{ checking: boolean; hasNew: boolean | null; currentSeasons?: number }>({ checking: false, hasNew: null });
   const x = useMotionValue(0);
   const deleteOpacity = useTransform(x, [-150, -80], [1, 0]);
   const deleteScale = useTransform(x, [-150, -80], [1, 0.8]);
@@ -41,6 +43,19 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
   };
 
   const isWatched = item.status === "Watched";
+  const isWatchedTvShow = isWatched && item.type === "TV Show" && item.tmdbId;
+
+  const checkNewSeason = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSeasonCheck({ checking: true, hasNew: null });
+    try {
+      const res = await apiRequest("GET", `/api/recommendations/${item.id}/check-new-season`);
+      const data = await res.json();
+      setSeasonCheck({ checking: false, hasNew: data.hasNewSeason, currentSeasons: data.currentSeasons });
+    } catch {
+      setSeasonCheck({ checking: false, hasNew: null });
+    }
+  };
 
   const handleStatusClick = (e: React.MouseEvent, status: string) => {
     e.stopPropagation();
@@ -160,15 +175,42 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
               </>
             )}
             {isWatched && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-[10px]"
-                onClick={(e) => handleStatusClick(e, "Watching")}
-                data-testid={`button-unwatched-${item.id}`}
-              >
-                Watching
-              </Button>
+              <>
+                {isWatchedTvShow && (
+                  <>
+                    {seasonCheck.hasNew === true && (
+                      <Badge variant="default" className="text-[9px] px-1.5 py-0 h-4 bg-green-600 border-green-600 animate-pulse" data-testid={`badge-new-season-${item.id}`}>
+                        New S{seasonCheck.currentSeasons}!
+                      </Badge>
+                    )}
+                    {seasonCheck.hasNew === false && (
+                      <span className="text-[9px] text-muted-foreground" data-testid={`text-no-new-season-${item.id}`}>Up to date</span>
+                    )}
+                    {seasonCheck.hasNew === null && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[10px] gap-1"
+                        onClick={checkNewSeason}
+                        disabled={seasonCheck.checking}
+                        data-testid={`button-check-season-${item.id}`}
+                      >
+                        <RefreshCw className={`w-3 h-3 ${seasonCheck.checking ? "animate-spin" : ""}`} />
+                        {seasonCheck.checking ? "" : "New?"}
+                      </Button>
+                    )}
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[10px]"
+                  onClick={(e) => handleStatusClick(e, "Watching")}
+                  data-testid={`button-unwatched-${item.id}`}
+                >
+                  Watching
+                </Button>
+              </>
             )}
             <Button
               variant="ghost"

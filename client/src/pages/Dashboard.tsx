@@ -39,7 +39,9 @@ export default function Dashboard() {
   };
 
   const handleHotRatingSubmit = (id: number, rating: number) => {
-    updateMutation.mutate({ id, status: "Watched", hotRating: rating });
+    const item = items.find((i: Recommendation) => i.id === id);
+    const lastKnownSeasons = item?.type === "TV Show" && item?.seasons ? item.seasons : undefined;
+    updateMutation.mutate({ id, status: "Watched", hotRating: rating, ...(lastKnownSeasons ? { lastKnownSeasons } : {}) });
     setHotRatingItem(null);
   };
 

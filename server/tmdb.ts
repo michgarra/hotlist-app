@@ -55,6 +55,18 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
     }));
 }
 
+export async function getTmdbSeasonCount(tmdbId: number): Promise<{ seasons: number; episodes: number }> {
+  const apiKey = getApiKey();
+  const url = `${TMDB_BASE}/tv/${tmdbId}?api_key=${apiKey}&language=en-US`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("TMDB fetch failed");
+  const data = await res.json();
+  return {
+    seasons: data.number_of_seasons || 0,
+    episodes: data.number_of_episodes || 0,
+  };
+}
+
 export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"): Promise<TmdbDetails> {
   const apiKey = getApiKey();
 
