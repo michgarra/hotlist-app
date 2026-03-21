@@ -250,8 +250,8 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                       <button
                         className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
                           item.status === "Interested"
-                            ? "bg-foreground text-background border-foreground"
-                            : "border-border text-muted-foreground hover:border-foreground/40"
+                            ? "bg-primary text-white border-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40"
                         }`}
                         onClick={(e) => handleStatusClick(e, "Interested")}
                         data-testid={`button-interested-${item.id}`}
@@ -261,8 +261,8 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                       <button
                         className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
                           item.status === "Watching"
-                            ? "bg-foreground text-background border-foreground"
-                            : "border-border text-muted-foreground hover:border-foreground/40"
+                            ? "bg-primary text-white border-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40"
                         }`}
                         onClick={(e) => handleStatusClick(e, "Watching")}
                         data-testid={`button-watching-${item.id}`}
@@ -270,11 +270,11 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                         Watching
                       </button>
                       <button
-                        className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-foreground/40 transition-colors"
+                        className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-primary/40 transition-colors"
                         onClick={(e) => handleStatusClick(e, "Watched")}
                         data-testid={`button-watched-${item.id}`}
                       >
-                        Watched ✓
+                        Watched
                       </button>
                     </>
                   )}
