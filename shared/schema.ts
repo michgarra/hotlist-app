@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, real, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,7 +13,9 @@ export const userProfiles = pgTable("user_profiles", {
   streamingApps: text("streaming_apps").array().notNull(),
   preferredRating: text("preferred_rating").notNull().default("imdb"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("user_profiles_user_id_idx").on(table.userId),
+]);
 
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
   id: true,
@@ -29,7 +31,9 @@ export const friends = pgTable("friends", {
   userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("friends_user_id_idx").on(table.userId),
+]);
 
 export const insertFriendSchema = createInsertSchema(friends).omit({
   id: true,
@@ -64,7 +68,9 @@ export const recommendations = pgTable("recommendations", {
   cast: text("cast_list"),
   director: text("director"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("recommendations_user_id_idx").on(table.userId),
+]);
 
 export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
   id: true,
