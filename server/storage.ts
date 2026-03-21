@@ -11,10 +11,11 @@ import {
   type Friend,
   type InsertFriend,
 } from "@shared/schema";
-import { eq, desc, ilike, and } from "drizzle-orm";
+import { eq, desc, ilike, and, asc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getRecommendations(userId: string): Promise<Recommendation[]>;
+  reorderRecommendations(userId: string, orderedIds: number[]): Promise<void>;
   getRecommendation(id: number): Promise<Recommendation | undefined>;
   createRecommendation(recommendation: InsertRecommendation & { userId: string }): Promise<Recommendation>;
   updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation>;
@@ -33,7 +34,20 @@ export class DatabaseStorage implements IStorage {
   async getRecommendations(userId: string): Promise<Recommendation[]> {
     return await db.select().from(recommendations)
       .where(eq(recommendations.userId, userId))
-      .orderBy(desc(recommendations.createdAt));
+      .orderBy(
+        sql`${recommendations.sortOrder} ASC NULLS LAST`,
+        desc(recommendations.createdAt)
+      );
+  }
+
+  async reorderRecommendations(userId: string, orderedIds: number[]): Promise<void> {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        db.update(recommendations)
+          .set({ sortOrder: index })
+          .where(and(eq(recommendations.id, id), eq(recommendations.userId, userId)))
+      )
+    );
   }
 
   async getRecommendation(id: number): Promise<Recommendation | undefined> {

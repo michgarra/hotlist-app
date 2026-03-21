@@ -1,4 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { useRecommendations, useUpdateRecommendation, useDeleteRecommendation } from "@/hooks/use-recommendations";
 import { TitleCard } from "@/components/TitleCard";
 import { AddTitleSheet } from "@/components/AddTitleSheet";
@@ -12,13 +26,14 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2 } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 import flameLogo from "@/assets/flame-logo.png";
 import type { Recommendation, Friend } from "@shared/schema";
 
 type ActiveTab = "mylist" | "hotlist" | "watched";
 
 export default function Dashboard() {
-  const { data: items = [], isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
+  const { data: serverItems = [], isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
   const updateMutation = useUpdateRecommendation();
   const deleteMutation = useDeleteRecommendation();
   const { user, logout } = useAuth();
@@ -41,6 +56,65 @@ export default function Dashboard() {
   const { data: friendsList = [] } = useFriends() as { data: Friend[] };
   const createFriend = useCreateFriend();
 
+  // Local ordered ID lists for optimistic drag-and-drop reordering
+  const [myListIds, setMyListIds] = useState<number[]>([]);
+  const [watchedIds, setWatchedIds] = useState<number[]>([]);
+
+  // Sync ordered IDs from server whenever server data changes
+  useEffect(() => {
+    if (!isLoading) {
+      setMyListIds(serverItems.filter(i => i.status !== "Watched").map(i => i.id));
+      setWatchedIds(serverItems.filter(i => i.status === "Watched").map(i => i.id));
+    }
+  }, [serverItems, isLoading]);
+
+  // Build ordered item arrays using local ID order for optimistic display
+  const items = useMemo(() => {
+    const itemMap = new Map(serverItems.map(i => [i.id, i]));
+    const myList = myListIds.map(id => itemMap.get(id)).filter(Boolean) as Recommendation[];
+    const watched = watchedIds.map(id => itemMap.get(id)).filter(Boolean) as Recommendation[];
+    return { myList, watched };
+  }, [serverItems, myListIds, watchedIds]);
+
+  const hasActiveFilters = !!(
+    search ||
+    typeFilter !== "all" ||
+    genreFilter !== "all" ||
+    platformFilter !== "all" ||
+    friendFilter !== "all" ||
+    hotRatingFilter !== "all"
+  );
+
+  // dnd-kit sensors — pointer with a small movement threshold, touch with delay to avoid conflict with scroll
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeId = Number(active.id);
+    const overId = Number(over.id);
+
+    if (activeTab === "mylist") {
+      const oldIndex = myListIds.indexOf(activeId);
+      const newIndex = myListIds.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const newIds = arrayMove(myListIds, oldIndex, newIndex);
+      setMyListIds(newIds);
+      apiRequest("POST", "/api/recommendations/reorder", { orderedIds: newIds });
+    } else if (activeTab === "watched") {
+      const oldIndex = watchedIds.indexOf(activeId);
+      const newIndex = watchedIds.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const newIds = arrayMove(watchedIds, oldIndex, newIndex);
+      setWatchedIds(newIds);
+      apiRequest("POST", "/api/recommendations/reorder", { orderedIds: newIds });
+    }
+  }, [activeTab, myListIds, watchedIds]);
+
   const handleStatusChange = (id: number, status: string) => {
     updateMutation.mutate({ id, status });
   };
@@ -50,7 +124,7 @@ export default function Dashboard() {
   };
 
   const handleHotRatingSubmit = (id: number, rating: number) => {
-    const item = items.find((i: Recommendation) => i.id === id);
+    const item = serverItems.find((i: Recommendation) => i.id === id);
     const lastKnownSeasons = item?.type === "TV Show" && item?.seasons ? item.seasons : undefined;
     updateMutation.mutate({ id, status: "Watched", hotRating: rating, ...(lastKnownSeasons ? { lastKnownSeasons } : {}) });
     setHotRatingItem(null);
@@ -62,37 +136,39 @@ export default function Dashboard() {
 
   const uniqueGenres = useMemo(() => {
     const genres = new Set<string>();
-    items.forEach((i: Recommendation) => {
+    serverItems.forEach((i: Recommendation) => {
       if (i.genre) i.genre.split(",").forEach(g => genres.add(g.trim()));
     });
     return Array.from(genres).sort();
-  }, [items]);
+  }, [serverItems]);
 
   const uniquePlatforms = useMemo(() => {
-    return Array.from(new Set(items.map((i: Recommendation) => i.platform).filter(Boolean))).sort() as string[];
-  }, [items]);
+    return Array.from(new Set(serverItems.map((i: Recommendation) => i.platform).filter(Boolean))).sort() as string[];
+  }, [serverItems]);
 
   const uniqueFriends = useMemo(() => {
-    return Array.from(new Set(items.map((i: Recommendation) => i.recommendedBy).filter(Boolean))).sort() as string[];
-  }, [items]);
+    return Array.from(new Set(serverItems.map((i: Recommendation) => i.recommendedBy).filter(Boolean))).sort() as string[];
+  }, [serverItems]);
 
-  const filteredItems = useMemo(() => {
-    return items.filter((item: Recommendation) => {
-      const matchesSearch = !search ||
-        item.title.toLowerCase().includes(search.toLowerCase()) ||
-        (item.genre && item.genre.toLowerCase().includes(search.toLowerCase()));
-      const matchesType = typeFilter === "all" || item.type === typeFilter;
-      const matchesGenre = genreFilter === "all" || (item.genre && item.genre.includes(genreFilter));
-      const matchesPlatform = platformFilter === "all" || item.platform === platformFilter;
-      const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
-      const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
-      return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating;
-    });
-  }, [items, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter]);
+  const applyFilters = (list: Recommendation[]) => list.filter((item: Recommendation) => {
+    const matchesSearch = !search ||
+      item.title.toLowerCase().includes(search.toLowerCase()) ||
+      (item.genre && item.genre.toLowerCase().includes(search.toLowerCase()));
+    const matchesType = typeFilter === "all" || item.type === typeFilter;
+    const matchesGenre = genreFilter === "all" || (item.genre && item.genre.includes(genreFilter));
+    const matchesPlatform = platformFilter === "all" || item.platform === platformFilter;
+    const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
+    const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
+    return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating;
+  });
 
-  const myListItems = filteredItems.filter((i: Recommendation) => i.status !== "Watched");
-  const watchedItems = filteredItems.filter((i: Recommendation) => i.status === "Watched");
+  const myListItems = useMemo(() => applyFilters(items.myList), [items.myList, search, typeFilter, genreFilter, platformFilter, friendFilter]);
+  const watchedItems = useMemo(() => applyFilters(items.watched), [items.watched, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter]);
   const displayItems = activeTab === "mylist" ? myListItems : watchedItems;
+  const displayIds = displayItems.map(i => i.id);
+
+  // Drag enabled only when no filters active (reordering a subset is confusing)
+  const isDragEnabled = !hasActiveFilters && activeTab !== "hotlist";
 
   if (isLoading) {
     return (
@@ -275,16 +351,30 @@ export default function Dashboard() {
                   </p>
                 </div>
               ) : (
-                displayItems.map((item: Recommendation) => (
-                  <TitleCard
-                    key={item.id}
-                    item={item}
-                    onStatusChange={handleStatusChange}
-                    onDelete={handleDelete}
-                    onOpenDetail={setDetailItem}
-                    onMarkWatched={handleMarkWatched}
-                  />
-                ))
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
+                    {hasActiveFilters && (
+                      <p className="text-[10px] text-muted-foreground/50 text-center py-1" data-testid="text-drag-hint">
+                        Clear filters to reorder
+                      </p>
+                    )}
+                    {displayItems.map((item: Recommendation) => (
+                      <TitleCard
+                        key={item.id}
+                        item={item}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onOpenDetail={setDetailItem}
+                        onMarkWatched={handleMarkWatched}
+                        isDragEnabled={isDragEnabled}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           </>

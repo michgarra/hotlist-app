@@ -19,6 +19,7 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - Hot Rating (flame meter 1-5) when marking items as Watched
 - Share via WhatsApp/native share
 - Swipe left to delete
+- Drag to reorder (grip handle on each card; disabled when filters are active)
 - Filter by type, genre, platform, friend, hot rating
 - Detail modal with cast, director, synopsis, runtime/episodes
 - Friends panel (slide-up, add/remove)

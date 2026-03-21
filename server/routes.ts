@@ -87,6 +87,20 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/recommendations/reorder", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { orderedIds } = z.object({ orderedIds: z.array(z.number()) }).parse(req.body);
+      await storage.reorderRecommendations(userId, orderedIds);
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
   app.get(api.recommendations.list.path, isAuthenticated, async (req, res) => {
     const userId = getUserId(req);
     const items = await storage.getRecommendations(userId);

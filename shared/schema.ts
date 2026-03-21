@@ -67,6 +67,7 @@ export const recommendations = pgTable("recommendations", {
   lastKnownSeasons: integer("last_known_seasons"),
   cast: text("cast_list"),
   director: text("director"),
+  sortOrder: integer("sort_order"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("recommendations_user_id_idx").on(table.userId),
