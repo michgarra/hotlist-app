@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
@@ -39,6 +40,51 @@ export async function registerRoutes(
       director: item.director,
       tmdbId: item.tmdbId,
     });
+  });
+
+  app.get("/api/hotlist", isAuthenticated, async (req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT
+          tmdb_id,
+          title,
+          type,
+          genre,
+          poster_url,
+          imdb_rating,
+          rt_rating,
+          overview,
+          COUNT(DISTINCT user_id)::int AS user_count,
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int AS recent_count,
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days' THEN 1 END)::int AS prev_count
+        FROM recommendations
+        WHERE tmdb_id IS NOT NULL
+        GROUP BY tmdb_id, title, type, genre, poster_url, imdb_rating, rt_rating, overview
+        ORDER BY user_count DESC, recent_count DESC
+        LIMIT 50
+      `);
+      const rows = result.rows.map((row: any, index: number) => {
+        let trend: "up" | "down" | "stable" = "stable";
+        if (row.recent_count > row.prev_count) trend = "up";
+        else if (row.recent_count < row.prev_count) trend = "down";
+        return {
+          rank: index + 1,
+          tmdbId: row.tmdb_id,
+          title: row.title,
+          type: row.type,
+          genre: row.genre,
+          posterUrl: row.poster_url,
+          imdbRating: row.imdb_rating,
+          rtRating: row.rt_rating,
+          overview: row.overview,
+          userCount: row.user_count,
+          trend,
+        };
+      });
+      res.json(rows);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch hotlist" });
+    }
   });
 
   app.get(api.recommendations.list.path, isAuthenticated, async (req, res) => {
