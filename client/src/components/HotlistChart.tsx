@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import type { Recommendation } from "@shared/schema";
 
 interface HotlistEntry {
   rank: number;
@@ -22,6 +23,36 @@ interface HotlistChartProps {
   search: string;
   typeFilter: string;
   genreFilter: string;
+  onOpenDetail?: (item: Recommendation) => void;
+}
+
+function entryToRecommendation(entry: HotlistEntry): Recommendation {
+  return {
+    id: entry.tmdbId,
+    userId: "",
+    title: entry.title,
+    type: entry.type,
+    genre: entry.genre,
+    posterUrl: entry.posterUrl,
+    imdbRating: entry.imdbRating,
+    overview: entry.overview,
+    tmdbId: entry.tmdbId,
+    status: "Want to Watch",
+    recommendedBy: null,
+    platform: null,
+    notes: null,
+    hotRating: null,
+    rtRating: null,
+    releaseDate: null,
+    runtime: null,
+    seasons: null,
+    episodes: null,
+    lastKnownSeasons: null,
+    cast: null,
+    director: null,
+    sortOrder: null,
+    createdAt: null,
+  };
 }
 
 function TrendIcon({ trend }: { trend: HotlistEntry["trend"] }) {
@@ -30,7 +61,7 @@ function TrendIcon({ trend }: { trend: HotlistEntry["trend"] }) {
   return <Minus className="w-4 h-4 text-muted-foreground/40" />;
 }
 
-export function HotlistChart({ search, typeFilter, genreFilter }: HotlistChartProps) {
+export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: HotlistChartProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addingId, setAddingId] = useState<number | null>(null);
@@ -104,7 +135,8 @@ export function HotlistChart({ search, typeFilter, genreFilter }: HotlistChartPr
           {filtered.map((entry) => (
             <div
               key={entry.tmdbId}
-              className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0"
+              className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 cursor-pointer active:bg-muted/40 transition-colors"
+              onClick={() => onOpenDetail?.(entryToRecommendation(entry))}
               data-testid={`hotlist-entry-${entry.rank}`}
             >
               <div className="flex flex-col items-center w-7 shrink-0">
@@ -145,7 +177,8 @@ export function HotlistChart({ search, typeFilter, genreFilter }: HotlistChartPr
                 size="icon"
                 variant="ghost"
                 className="shrink-0 w-8 h-8"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setAddingId(entry.tmdbId);
                   addMutation.mutate(entry);
                 }}

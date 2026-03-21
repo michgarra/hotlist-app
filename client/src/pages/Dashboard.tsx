@@ -405,7 +405,7 @@ export default function Dashboard() {
         </div>
 
         {activeTab === "hotlist" ? (
-          <HotlistChart search={search} typeFilter={typeFilter} genreFilter={genreFilter} />
+          <HotlistChart search={search} typeFilter={typeFilter} genreFilter={genreFilter} onOpenDetail={setDetailItem} />
         ) : (
           <div className="flex-1 px-3 pb-24 space-y-1.5" data-testid="list-recommendations">
             {displayItems.length === 0 ? (
