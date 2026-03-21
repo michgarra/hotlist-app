@@ -107,7 +107,9 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
     if (status === "Watched") {
       onMarkWatched(item);
     } else {
-      onStatusChange(item.id, status);
+      // Tapping an already-active status toggles it back to "Want to Watch"
+      const newStatus = item.status === status ? "Want to Watch" : status;
+      onStatusChange(item.id, newStatus);
     }
   };
 
