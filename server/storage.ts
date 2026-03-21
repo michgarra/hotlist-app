@@ -35,7 +35,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(recommendations)
       .where(eq(recommendations.userId, userId))
       .orderBy(
-        sql`${recommendations.sortOrder} ASC NULLS LAST`,
+        sql`${recommendations.sortOrder} ASC NULLS FIRST`,
         desc(recommendations.createdAt)
       );
   }
