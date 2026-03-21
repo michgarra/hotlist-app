@@ -1,7 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Pencil } from "lucide-react";
+import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Pencil, X } from "lucide-react";
 import type { Recommendation } from "@shared/schema";
 
 interface DetailModalProps {
@@ -14,23 +14,40 @@ interface DetailModalProps {
 export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalProps) {
   if (!item) return null;
 
-  const castList = item.cast ? item.cast.split(",").map(c => c.trim()) : [];
+  const castList = item.cast ? item.cast.split(",").map(c => c.trim()).filter(Boolean) : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto p-0" data-testid="dialog-detail">
-        {item.posterUrl && (
-          <div className="relative w-full h-56 overflow-hidden rounded-t-md">
+      <DialogContent
+        className="sm:max-w-[480px] max-h-[90dvh] overflow-y-auto p-0"
+        data-testid="dialog-detail"
+        hideCloseButton
+      >
+        {/* Poster hero with visible close button */}
+        {item.posterUrl ? (
+          <div className="relative w-full h-56 overflow-hidden rounded-t-md flex-shrink-0">
             <img
               src={item.posterUrl.replace("/w342/", "/w780/")}
               alt={item.title}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+            {/* Clearly visible close button */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+              data-testid="button-close-detail"
+            >
+              <X className="w-4 h-4" />
+            </button>
             <div className="absolute bottom-4 left-4 right-4">
               <h2 className="text-2xl font-bold text-white drop-shadow-lg" data-testid="text-detail-title">
                 {item.title}
-                {item.releaseDate && <span className="text-xl font-normal text-white/70 ml-2" data-testid="text-detail-year">({item.releaseDate.substring(0, 4)})</span>}
+                {item.releaseDate && (
+                  <span className="text-xl font-normal text-white/70 ml-2" data-testid="text-detail-year">
+                    ({item.releaseDate.substring(0, 4)})
+                  </span>
+                )}
               </h2>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant="secondary" className="text-[10px] bg-white/20 text-white border-0" data-testid="badge-detail-type">
@@ -41,15 +58,26 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
               </div>
             </div>
           </div>
+        ) : (
+          <div className="flex items-center justify-between px-5 pt-5 pb-2">
+            <div>
+              <h2 className="text-xl font-bold" data-testid="text-detail-title-alt">{item.title}</h2>
+              {item.releaseDate && (
+                <span className="text-sm text-muted-foreground">{item.releaseDate.substring(0, 4)}</span>
+              )}
+            </div>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-foreground hover:bg-muted/80 transition-colors ml-2 flex-shrink-0"
+              data-testid="button-close-detail-no-poster"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         )}
 
         <div className="p-5 space-y-4">
-          {!item.posterUrl && (
-            <DialogHeader>
-              <DialogTitle data-testid="text-detail-title-alt">{item.title}</DialogTitle>
-            </DialogHeader>
-          )}
-
+          {/* Ratings and runtime row */}
           <div className="flex items-center gap-4 flex-wrap">
             {item.imdbRating && (
               <div className="flex items-center gap-1" data-testid="text-detail-rating">
@@ -76,11 +104,13 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             )}
             {item.seasons && (
               <span className="text-xs text-muted-foreground" data-testid="text-detail-seasons">
-                {item.seasons} season{item.seasons > 1 ? 's' : ''}, {item.episodes} ep{item.episodes && item.episodes > 1 ? 's' : ''}
+                {item.seasons} season{item.seasons > 1 ? 's' : ''}
+                {item.episodes ? `, ${item.episodes} ep${item.episodes > 1 ? 's' : ''}` : ''}
               </span>
             )}
           </div>
 
+          {/* Platform */}
           {item.platform && (
             <div className="flex items-center gap-2" data-testid="text-detail-platform">
               <Megaphone className="w-4 h-4 text-muted-foreground" />
@@ -88,6 +118,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
+          {/* Synopsis */}
           {item.overview && (
             <div data-testid="text-detail-overview">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Synopsis</h4>
@@ -95,6 +126,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
+          {/* Cast */}
           {castList.length > 0 && (
             <div data-testid="text-detail-cast">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -108,6 +140,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
+          {/* Director */}
           {item.director && (
             <div data-testid="text-detail-director">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Director</h4>
@@ -115,12 +148,20 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
-          {item.recommendedBy && (
-            <div className="pt-2 border-t" data-testid="text-detail-recommended">
-              <p className="text-xs text-muted-foreground">
-                Recommended by <span className="font-medium text-primary">{item.recommendedBy}</span>
-              </p>
-              {item.notes && <p className="text-xs text-muted-foreground italic mt-1">"{item.notes}"</p>}
+          {/* Recommended by + Notes — shown independently */}
+          {(item.recommendedBy || item.notes) && (
+            <div className="pt-2 border-t space-y-1" data-testid="text-detail-notes-section">
+              {item.recommendedBy && (
+                <p className="text-xs text-muted-foreground" data-testid="text-detail-recommended">
+                  Recommended by <span className="font-medium text-primary">{item.recommendedBy}</span>
+                </p>
+              )}
+              {item.notes && (
+                <div data-testid="text-detail-notes">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Notes</h4>
+                  <p className="text-sm text-muted-foreground italic">"{item.notes}"</p>
+                </div>
+              )}
             </div>
           )}
 

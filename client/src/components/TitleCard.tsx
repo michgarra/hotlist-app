@@ -17,6 +17,22 @@ interface TitleCardProps {
   isDragEnabled?: boolean;
 }
 
+// Shorten long streaming platform names for compact display
+function shortenPlatform(name: string): string {
+  const map: Record<string, string> = {
+    "Amazon Prime Video": "Amazon",
+    "Amazon Prime": "Amazon",
+    "Apple TV+": "Apple TV+",
+    "Apple TV Plus": "Apple TV+",
+    "Google Play Movies & TV": "Google Play",
+    "Google Play Movies": "Google Play",
+    "Microsoft Store": "Microsoft",
+    "Foxtel Now": "Foxtel",
+    "Stan.": "Stan",
+  };
+  return map[name] ?? name;
+}
+
 export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false }: TitleCardProps) {
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [seasonCheck, setSeasonCheck] = useState<{ checking: boolean; hasNew: boolean | null; currentSeasons?: number }>({ checking: false, hasNew: null });
@@ -64,6 +80,14 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
 
   const isWatched = item.status === "Watched";
   const isWatchedTvShow = isWatched && item.type === "TV Show" && item.tmdbId;
+
+  // First genre only for compact display
+  const firstGenre = item.genre ? item.genre.split(",")[0].trim() : null;
+
+  // First two cast names for compact display
+  const topCast = item.cast
+    ? item.cast.split(",").map(c => c.trim()).slice(0, 2)
+    : [];
 
   const checkNewSeason = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -117,6 +141,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
           drag="x"
           dragConstraints={{ left: -160, right: 0 }}
           dragElastic={0.1}
+          dragDirectionLock
           onDragStart={() => setIsSwipeDragging(true)}
           onDragEnd={handleDragEnd}
           style={{ x }}
@@ -156,6 +181,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   </Badge>
                 </div>
 
+                {/* Metadata row: rating, genre, platform, who recommended */}
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                   {item.imdbRating && (
                     <span className="flex items-center gap-0.5 text-[11px]" data-testid={`text-rating-${item.id}`}>
@@ -163,20 +189,34 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                       <span className="font-semibold">{item.imdbRating}</span>
                     </span>
                   )}
+                  {firstGenre && (
+                    <span className="text-[11px] text-muted-foreground/70" data-testid={`text-genre-${item.id}`}>{firstGenre}</span>
+                  )}
                   {item.platform && (
-                    <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{item.platform}</span>
+                    <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{shortenPlatform(item.platform)}</span>
                   )}
                   {item.recommendedBy && (
                     <span className="text-[11px] text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
                   )}
-                  {isWatched && item.hotRating && (
-                    <span className="flex items-center gap-0.5" data-testid={`rating-hot-${item.id}`}>
-                      {Array.from({ length: item.hotRating }).map((_, i) => (
-                        <Flame key={i} className="w-2.5 h-2.5 text-primary fill-primary" />
-                      ))}
-                    </span>
-                  )}
                 </div>
+
+                {/* Cast row */}
+                {topCast.length > 0 && (
+                  <div className="flex items-center gap-1 mt-0.5" data-testid={`text-cast-${item.id}`}>
+                    <span className="text-[10px] text-muted-foreground/60 truncate">
+                      {topCast.join(" · ")}
+                    </span>
+                  </div>
+                )}
+
+                {/* Hot rating for watched items */}
+                {isWatched && item.hotRating && (
+                  <span className="flex items-center gap-0.5 mt-0.5" data-testid={`rating-hot-${item.id}`}>
+                    {Array.from({ length: item.hotRating }).map((_, i) => (
+                      <Flame key={i} className="w-2.5 h-2.5 text-primary fill-primary" />
+                    ))}
+                  </span>
+                )}
 
                 <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                   {!isWatched && (
