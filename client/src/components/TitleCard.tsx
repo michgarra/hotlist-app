@@ -218,16 +218,13 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   {ratingDisplay !== "friend" && item.recommendedBy && (
                     <span className="text-[11px] text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
                   )}
-                </div>
-
-                {/* Cast row */}
-                {topCast.length > 0 && (
-                  <div className="flex items-center gap-1 mt-0.5" data-testid={`text-cast-${item.id}`}>
-                    <span className="text-[10px] text-muted-foreground/60 truncate">
+                  {/* Cast folded into metadata row */}
+                  {topCast.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground/50 truncate" data-testid={`text-cast-${item.id}`}>
                       {topCast.join(" · ")}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Hot rating for watched items — supports 0.5 increments */}
                 {isWatched && item.hotRating && (
@@ -247,36 +244,38 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   </span>
                 )}
 
-                <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
                   {!isWatched && (
                     <>
-                      <Button
-                        variant={item.status === "Interested" ? "default" : "outline"}
-                        size="sm"
-                        className="text-[10px]"
+                      <button
+                        className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
+                          item.status === "Interested"
+                            ? "bg-foreground text-background border-foreground"
+                            : "border-border text-muted-foreground hover:border-foreground/40"
+                        }`}
                         onClick={(e) => handleStatusClick(e, "Interested")}
                         data-testid={`button-interested-${item.id}`}
                       >
                         Hot
-                      </Button>
-                      <Button
-                        variant={item.status === "Watching" ? "default" : "outline"}
-                        size="sm"
-                        className="text-[10px]"
+                      </button>
+                      <button
+                        className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
+                          item.status === "Watching"
+                            ? "bg-foreground text-background border-foreground"
+                            : "border-border text-muted-foreground hover:border-foreground/40"
+                        }`}
                         onClick={(e) => handleStatusClick(e, "Watching")}
                         data-testid={`button-watching-${item.id}`}
                       >
                         Watching
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[10px]"
+                      </button>
+                      <button
+                        className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-foreground/40 transition-colors"
                         onClick={(e) => handleStatusClick(e, "Watched")}
                         data-testid={`button-watched-${item.id}`}
                       >
-                        Watched
-                      </Button>
+                        Watched ✓
+                      </button>
                     </>
                   )}
                   {isWatched && (
@@ -292,39 +291,34 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                             <span className="text-[9px] text-muted-foreground" data-testid={`text-no-new-season-${item.id}`}>Up to date</span>
                           )}
                           {seasonCheck.hasNew === null && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-[10px] gap-1"
+                            <button
+                              className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-foreground/40 transition-colors flex items-center gap-0.5"
                               onClick={checkNewSeason}
                               disabled={seasonCheck.checking}
                               data-testid={`button-check-season-${item.id}`}
                             >
-                              <RefreshCw className={`w-3 h-3 ${seasonCheck.checking ? "animate-spin" : ""}`} />
+                              <RefreshCw className={`w-2.5 h-2.5 ${seasonCheck.checking ? "animate-spin" : ""}`} />
                               {seasonCheck.checking ? "" : "New?"}
-                            </Button>
+                            </button>
                           )}
                         </>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[10px]"
+                      <button
+                        className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-foreground/40 transition-colors"
                         onClick={(e) => handleStatusClick(e, "Watching")}
                         data-testid={`button-unwatched-${item.id}`}
                       >
                         Watching
-                      </Button>
+                      </button>
                     </>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
+                  <button
+                    className="h-5 w-5 flex items-center justify-center rounded-full text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
                     onClick={handleShare}
                     data-testid={`button-share-${item.id}`}
                   >
-                    <Share2 className="w-3.5 h-3.5" />
-                  </Button>
+                    <Share2 className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             </div>
