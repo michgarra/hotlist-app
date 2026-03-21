@@ -7,16 +7,24 @@ import { useAuth } from "@/hooks/use-auth";
 import Dashboard from "@/pages/Dashboard";
 import Onboarding from "@/pages/Onboarding";
 import Landing from "@/pages/Landing";
+import BetaWaitlist from "@/pages/BetaWaitlist";
 import SharedTitle from "@/pages/SharedTitle";
 import NotFound from "@/pages/not-found";
+import { SessionExpiredOverlay } from "@/components/SessionExpiredOverlay";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 function AuthenticatedApp() {
+  const { user, logout, isBeta } = useAuth();
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
+    enabled: isBeta,
   });
+
+  if (!isBeta) {
+    return <BetaWaitlist email={user?.email} onLogout={logout} />;
+  }
 
   if (profileLoading) {
     return (
@@ -64,6 +72,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <AppContent />
+        <SessionExpiredOverlay />
       </TooltipProvider>
     </QueryClientProvider>
   );
