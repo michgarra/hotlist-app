@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [friendFilter, setFriendFilter] = useState("all");
   const [hotRatingFilter, setHotRatingFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [ratingDisplay, setRatingDisplay] = useState<"imdb" | "rt" | "hot" | "friend">("imdb");
   const [activeTab, setActiveTab] = useState<ActiveTab>("mylist");
 
   const [hotRatingItem, setHotRatingItem] = useState<Recommendation | null>(null);
@@ -144,7 +145,14 @@ export default function Dashboard() {
   }, [serverItems]);
 
   const uniquePlatforms = useMemo(() => {
-    return Array.from(new Set(serverItems.map((i: Recommendation) => i.platform).filter(Boolean))).sort() as string[];
+    const seen = new Map<string, string>();
+    serverItems.forEach((i: Recommendation) => {
+      if (i.platform) {
+        const key = i.platform.trim().toLowerCase();
+        if (!seen.has(key)) seen.set(key, i.platform.trim());
+      }
+    });
+    return Array.from(seen.values()).sort();
   }, [serverItems]);
 
   const uniqueFriends = useMemo(() => {
@@ -284,139 +292,160 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* Filter bar — shown on all three tabs */}
+        <div className="px-3 py-2 space-y-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search titles, genres..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9"
+                data-testid="input-search"
+              />
+            </div>
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              data-testid="button-toggle-filters"
+            >
+              <Filter className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {showFilters && (
+            <div className="flex gap-2 flex-wrap" data-testid="filters-panel">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="filter-type">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Movie">Movies</SelectItem>
+                  <SelectItem value="TV Show">TV Shows</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {uniqueGenres.length > 0 && (
+                <Select value={genreFilter} onValueChange={setGenreFilter}>
+                  <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-genre">
+                    <SelectValue placeholder="Genre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Genres</SelectItem>
+                    {uniqueGenres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {activeTab !== "hotlist" && uniquePlatforms.length > 0 && (
+                <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                  <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-platform">
+                    <SelectValue placeholder="Platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Platforms</SelectItem>
+                    {uniquePlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {activeTab !== "hotlist" && uniqueFriends.length > 0 && (
+                <Select value={friendFilter} onValueChange={setFriendFilter}>
+                  <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="filter-friend">
+                    <SelectValue placeholder="Friend" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Friends</SelectItem>
+                    {uniqueFriends.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {activeTab !== "hotlist" && (
+                <Select value={hotRatingFilter} onValueChange={setHotRatingFilter}>
+                  <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-hot-rating">
+                    <SelectValue placeholder="Hot Rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value="5">5 Flames</SelectItem>
+                    <SelectItem value="4">4+ Flames</SelectItem>
+                    <SelectItem value="3">3+ Flames</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* All Ratings display toggle — only for My List / Watched */}
+              {activeTab !== "hotlist" && (
+                <div className="w-full flex items-center gap-1.5 flex-wrap pt-0.5" data-testid="filter-rating-display">
+                  <span className="text-[10px] text-muted-foreground/70 shrink-0">Show rating:</span>
+                  {(["imdb", "rt", "hot", "friend"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                        ratingDisplay === mode
+                          ? "bg-foreground text-background border-foreground"
+                          : "border-border text-muted-foreground hover:border-foreground/40"
+                      }`}
+                      onClick={() => setRatingDisplay(mode)}
+                      data-testid={`toggle-rating-${mode}`}
+                    >
+                      {mode === "imdb" ? "IMDb" : mode === "rt" ? "RT" : mode === "hot" ? "🔥 Mine" : "Friend"}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {activeTab === "hotlist" ? (
-          <HotlistChart />
+          <HotlistChart search={search} typeFilter={typeFilter} genreFilter={genreFilter} />
         ) : (
-          <>
-            <div className="px-3 py-2 space-y-2">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search titles, genres..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 h-9"
-                    data-testid="input-search"
-                  />
-                </div>
-                <Button
-                  variant={showFilters ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setShowFilters(!showFilters)}
-                  data-testid="button-toggle-filters"
-                >
-                  <Filter className="w-4 h-4" />
-                </Button>
+          <div className="flex-1 px-3 pb-24 space-y-1.5" data-testid="list-recommendations">
+            {displayItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Flame className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                <p className="font-medium text-muted-foreground">
+                  {activeTab === "mylist" ? "Your list is empty" : "No watched titles yet"}
+                </p>
+                <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs">
+                  {activeTab === "mylist"
+                    ? "Tap + below to add movies and shows recommended by friends"
+                    : "Mark items as Watched and rate them to see them here"}
+                </p>
               </div>
-
-              {showFilters && (
-                <div className="flex gap-2 flex-wrap" data-testid="filters-panel">
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="filter-type">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="Movie">Movies</SelectItem>
-                      <SelectItem value="TV Show">TV Shows</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {uniqueGenres.length > 0 && (
-                    <Select value={genreFilter} onValueChange={setGenreFilter}>
-                      <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-genre">
-                        <SelectValue placeholder="Genre" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Genres</SelectItem>
-                        {uniqueGenres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
+                  {hasActiveFilters && (
+                    <p className="text-[10px] text-muted-foreground/50 text-center py-1" data-testid="text-drag-hint">
+                      Clear filters to reorder
+                    </p>
                   )}
-
-                  {uniquePlatforms.length > 0 && (
-                    <Select value={platformFilter} onValueChange={setPlatformFilter}>
-                      <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-platform">
-                        <SelectValue placeholder="Platform" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Platforms</SelectItem>
-                        {uniquePlatforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {uniqueFriends.length > 0 && (
-                    <Select value={friendFilter} onValueChange={setFriendFilter}>
-                      <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="filter-friend">
-                        <SelectValue placeholder="Friend" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Friends</SelectItem>
-                        {uniqueFriends.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {activeTab === "watched" && (
-                    <Select value={hotRatingFilter} onValueChange={setHotRatingFilter}>
-                      <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-hot-rating">
-                        <SelectValue placeholder="Hot Rating" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Ratings</SelectItem>
-                        <SelectItem value="5">5 Flames</SelectItem>
-                        <SelectItem value="4">4+ Flames</SelectItem>
-                        <SelectItem value="3">3+ Flames</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 px-3 pb-24 space-y-1.5" data-testid="list-recommendations">
-              {displayItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Flame className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                  <p className="font-medium text-muted-foreground">
-                    {activeTab === "mylist" ? "Your list is empty" : "No watched titles yet"}
-                  </p>
-                  <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs">
-                    {activeTab === "mylist"
-                      ? "Tap + below to add movies and shows recommended by friends"
-                      : "Mark items as Watched and rate them to see them here"}
-                  </p>
-                </div>
-              ) : (
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
-                    {hasActiveFilters && (
-                      <p className="text-[10px] text-muted-foreground/50 text-center py-1" data-testid="text-drag-hint">
-                        Clear filters to reorder
-                      </p>
-                    )}
-                    {displayItems.map((item: Recommendation) => (
-                      <TitleCard
-                        key={item.id}
-                        item={item}
-                        onStatusChange={handleStatusChange}
-                        onDelete={handleDelete}
-                        onOpenDetail={setDetailItem}
-                        onMarkWatched={handleMarkWatched}
-                        isDragEnabled={isDragEnabled}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
-          </>
+                  {displayItems.map((item: Recommendation) => (
+                    <TitleCard
+                      key={item.id}
+                      item={item}
+                      onStatusChange={handleStatusChange}
+                      onDelete={handleDelete}
+                      onOpenDetail={setDetailItem}
+                      onMarkWatched={handleMarkWatched}
+                      isDragEnabled={isDragEnabled}
+                      ratingDisplay={ratingDisplay}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
+          </div>
         )}
       </div>
 
