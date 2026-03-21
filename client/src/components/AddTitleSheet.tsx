@@ -170,31 +170,31 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
           </SheetTitle>
         </SheetHeader>
 
+        {/* Search input — fixed between header and results, never inside scroll */}
+        {!selectedItem && !isEditing && (
+          <div className="flex-shrink-0 bg-background px-4 py-3 border-b">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search movies and TV shows..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+                autoFocus
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                data-testid="input-search-tmdb"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {!selectedItem && !isEditing ? (
-            <div className="flex flex-col h-full">
-              {/* Sticky search input inside the scroll area */}
-              <div className="sticky top-0 bg-background z-10 px-4 py-3 border-b">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search movies and TV shows..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                    autoFocus
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    data-testid="input-search-tmdb"
-                  />
-                </div>
-              </div>
-
-              {/* Results list — fills remaining height, independently scrollable */}
-              <div className="flex-1 px-4 py-2" data-testid="list-search-results">
+              <div className="px-4 py-2" data-testid="list-search-results">
                 {isSearching && (
                   <div className="flex items-center justify-center py-10">
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -249,7 +249,6 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
                   </p>
                 )}
               </div>
-            </div>
           ) : selectedItem ? (
             <div className="px-4 py-4 space-y-4">
               <div className="flex gap-3">
