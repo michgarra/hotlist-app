@@ -23,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -193,17 +194,55 @@ export default function Dashboard() {
             <Button variant="ghost" size="icon" className="text-white/80" onClick={() => setShowFriends(true)} data-testid="button-friends">
               <Users className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white/80" onClick={() => logout()} data-testid="button-logout">
-              <LogOut className="w-4 h-4" />
-            </Button>
-            {user && (
-              <Avatar className="w-7 h-7 ml-1" data-testid="avatar-user">
-                <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
-                <AvatarFallback className="text-[10px] bg-primary/20 text-white">
-                  {(user.firstName?.[0] || "U").toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="ml-1 rounded-full ring-2 ring-transparent hover:ring-white/40 transition-all focus:outline-none"
+                  data-testid="button-settings"
+                >
+                  <Avatar className="w-8 h-8" data-testid="avatar-user">
+                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
+                    <AvatarFallback className="text-[11px] bg-primary/80 text-white font-bold">
+                      {(user?.firstName?.[0] || "U").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-0" data-testid="panel-settings">
+                {/* User info */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b">
+                  <Avatar className="w-10 h-10 flex-shrink-0">
+                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
+                    <AvatarFallback className="text-sm bg-primary/20 font-bold">
+                      {(user?.firstName?.[0] || "U").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    {user?.firstName && (
+                      <p className="font-semibold text-sm truncate" data-testid="text-settings-name">
+                        {user.firstName}
+                      </p>
+                    )}
+                    {user?.email && (
+                      <p className="text-xs text-muted-foreground truncate" data-testid="text-settings-email">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="p-2">
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                    onClick={() => logout()}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign out
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </header>
