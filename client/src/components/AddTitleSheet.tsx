@@ -35,6 +35,30 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [newFriendName, setNewFriendName] = useState("");
+  const [sheetStyle, setSheetStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (!open) {
+      setSheetStyle({});
+      return;
+    }
+    const update = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const bottomOffset = window.innerHeight - vv.height - vv.offsetTop;
+      setSheetStyle({
+        height: `${vv.height * 0.92}px`,
+        bottom: `${bottomOffset}px`,
+      });
+    };
+    update();
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+    };
+  }, [open]);
 
   const { data: searchResults = [], isLoading: isSearching } = useTmdbSearch(debouncedQuery);
   const createMutation = useCreateRecommendation();
@@ -155,7 +179,8 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[90dvh] flex flex-col p-0 rounded-t-xl"
+        className="flex flex-col p-0 rounded-t-xl"
+        style={sheetStyle}
         data-testid="dialog-add-title"
       >
         {/* Fixed header */}
