@@ -184,6 +184,10 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9"
                     autoFocus
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     data-testid="input-search-tmdb"
                   />
                 </div>
