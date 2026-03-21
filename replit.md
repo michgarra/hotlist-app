@@ -16,13 +16,15 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - Compact title cards with poster thumbnails, ratings, platform info
 - TMDB-powered search when adding titles (auto-fills metadata)
 - Status flow: Want to Watch / Hot / Watching / Watched
-- Hot Rating (flame meter 1-5) when marking items as Watched
+- Hot Rating (flame meter, 0.5–5 in 0.5 increments) when marking items as Watched; stored as real/float
 - Share via WhatsApp/native share
 - Swipe left to delete
 - Drag to reorder (grip handle on each card; disabled when filters are active)
-- Filter by type, genre, platform, friend, hot rating
+- Unified filter bar across all three tabs: type, genre (My List/Watched: + platform, friend, hot rating); platform list is case-insensitively deduplicated
+- "All Ratings" display toggle on My List/Watched: IMDb ★ / RT 🍅 / 🔥 Mine / Friend — changes which rating shows on each card
 - Detail modal with cast, director, synopsis, runtime/episodes
-- Friends panel (slide-up, add/remove)
+- Friends panel (slide-up): add/remove friends, search friends list (shown when 5+ friends), tap a friend to expand and see items they've recommended; tap item to open detail
+- Avatar in header opens settings popover with user name/email and sign-out button
 - Beta allowlist via BETA_EMAILS env var
 - Session expiry overlay with "Log back in" prompt
 
