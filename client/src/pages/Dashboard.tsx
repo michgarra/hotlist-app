@@ -55,6 +55,8 @@ export default function Dashboard() {
   const [editItem, setEditItem] = useState<Recommendation | null>(null);
   const [showFriends, setShowFriends] = useState(false);
   const [newFriendName, setNewFriendName] = useState("");
+  const [friendSearch, setFriendSearch] = useState("");
+  const [expandedFriendId, setExpandedFriendId] = useState<number | null>(null);
   const { data: friendsList = [] } = useFriends() as { data: Friend[] };
   const createFriend = useCreateFriend();
 
@@ -492,13 +494,15 @@ export default function Dashboard() {
 
       {showFriends && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center" onClick={() => setShowFriends(false)} data-testid="overlay-friends">
-          <div className="bg-card w-full max-w-lg rounded-t-xl p-4 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()} data-testid="panel-friends">
+          <div className="bg-card w-full max-w-lg rounded-t-xl p-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()} data-testid="panel-friends">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="font-bold text-base">My Friends</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowFriends(false)} data-testid="button-close-friends">
                 <X className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Add friend */}
             <form
               className="flex gap-2 mb-3"
               onSubmit={(e) => {
@@ -521,28 +525,105 @@ export default function Dashboard() {
                 <Plus className="w-4 h-4" />
               </Button>
             </form>
+
+            {/* Search friends (only when list is long enough) */}
+            {friendsList.length >= 5 && (
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search friends..."
+                  value={friendSearch}
+                  onChange={(e) => setFriendSearch(e.target.value)}
+                  className="pl-8 h-8 text-sm"
+                  data-testid="input-friend-search"
+                />
+              </div>
+            )}
+
             <div className="overflow-y-auto flex-1">
               {friendsList.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-no-friends">No friends added yet</p>
               ) : (
-                <ul className="space-y-1">
-                  {friendsList.map((f: Friend) => (
-                    <li key={f.id} className="flex items-center justify-between gap-2 py-2 px-2 rounded-md" data-testid={`friend-item-${f.id}`}>
-                      <span className="text-sm font-medium">{f.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={async () => {
-                          await fetch(`/api/friends/${f.id}`, { method: "DELETE" });
-                          createFriend.reset();
-                          (await import("@/lib/queryClient")).queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
-                        }}
-                        data-testid={`button-delete-friend-${f.id}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    </li>
-                  ))}
+                <ul className="space-y-0.5">
+                  {friendsList
+                    .filter((f: Friend) => !friendSearch || f.name.toLowerCase().includes(friendSearch.toLowerCase()))
+                    .map((f: Friend) => {
+                      const theirItems = serverItems.filter((i: Recommendation) =>
+                        i.recommendedBy?.toLowerCase() === f.name.toLowerCase()
+                      );
+                      const isExpanded = expandedFriendId === f.id;
+                      return (
+                        <li key={f.id} data-testid={`friend-item-${f.id}`}>
+                          {/* Friend row */}
+                          <div
+                            className="flex items-center justify-between gap-2 py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => setExpandedFriendId(isExpanded ? null : f.id)}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-sm font-medium truncate">{f.name}</span>
+                              {theirItems.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground/60 shrink-0">
+                                  {theirItems.length} rec{theirItems.length !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {theirItems.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground/60">
+                                  {isExpanded ? "▲" : "▼"}
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await fetch(`/api/friends/${f.id}`, { method: "DELETE" });
+                                  createFriend.reset();
+                                  (await import("@/lib/queryClient")).queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
+                                }}
+                                data-testid={`button-delete-friend-${f.id}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Expanded: items they recommended */}
+                          {isExpanded && theirItems.length > 0 && (
+                            <ul className="ml-3 mb-1 border-l-2 border-border/40 pl-3 space-y-1.5">
+                              {theirItems.map((item: Recommendation) => (
+                                <li
+                                  key={item.id}
+                                  className="flex items-center gap-2 cursor-pointer py-1"
+                                  onClick={() => {
+                                    setShowFriends(false);
+                                    setDetailItem(item);
+                                  }}
+                                  data-testid={`friend-rec-${f.id}-${item.id}`}
+                                >
+                                  {item.posterUrl ? (
+                                    <img src={item.posterUrl} alt={item.title} className="w-6 h-9 object-cover rounded shrink-0" />
+                                  ) : (
+                                    <div className="w-6 h-9 bg-muted rounded shrink-0" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-medium truncate">{item.title}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">
+                                      {item.type}{item.status === "Watched" ? " · ✓ Watched" : ""}
+                                    </p>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          {isExpanded && theirItems.length === 0 && (
+                            <p className="text-xs text-muted-foreground/60 ml-4 pb-2">No items from {f.name} yet</p>
+                          )}
+                        </li>
+                      );
+                    })}
                 </ul>
               )}
             </div>

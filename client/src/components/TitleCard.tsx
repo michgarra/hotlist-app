@@ -15,6 +15,7 @@ interface TitleCardProps {
   onOpenDetail: (item: Recommendation) => void;
   onMarkWatched: (item: Recommendation) => void;
   isDragEnabled?: boolean;
+  ratingDisplay?: "imdb" | "rt" | "hot" | "friend";
 }
 
 // Shorten long streaming platform names for compact display
@@ -33,7 +34,7 @@ function shortenPlatform(name: string): string {
   return map[name] ?? name;
 }
 
-export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false }: TitleCardProps) {
+export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false, ratingDisplay = "imdb" }: TitleCardProps) {
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [seasonCheck, setSeasonCheck] = useState<{ checking: boolean; hasNew: boolean | null; currentSeasons?: number }>({ checking: false, hasNew: null });
   const x = useMotionValue(0);
@@ -183,10 +184,27 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
 
                 {/* Metadata row: rating, genre, platform, who recommended */}
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  {item.imdbRating && (
+                  {/* Rating slot — switches based on ratingDisplay */}
+                  {ratingDisplay === "imdb" && item.imdbRating && (
                     <span className="flex items-center gap-0.5 text-[11px]" data-testid={`text-rating-${item.id}`}>
                       <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
                       <span className="font-semibold">{item.imdbRating}</span>
+                    </span>
+                  )}
+                  {ratingDisplay === "rt" && (
+                    <span className="flex items-center gap-0.5 text-[11px]" data-testid={`text-rating-${item.id}`}>
+                      <span>🍅</span>
+                      <span className="font-semibold">{item.rtRating != null ? `${item.rtRating}%` : "—"}</span>
+                    </span>
+                  )}
+                  {ratingDisplay === "hot" && item.hotRating != null && (
+                    <span className="flex items-center gap-0.5 text-[11px] font-semibold text-primary" data-testid={`text-rating-${item.id}`}>
+                      🔥 {item.hotRating}
+                    </span>
+                  )}
+                  {ratingDisplay === "friend" && item.recommendedBy && (
+                    <span className="text-[11px] text-primary font-semibold" data-testid={`text-rating-${item.id}`}>
+                      {item.recommendedBy}
                     </span>
                   )}
                   {firstGenre && (
@@ -195,7 +213,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   {item.platform && (
                     <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{shortenPlatform(item.platform)}</span>
                   )}
-                  {item.recommendedBy && (
+                  {ratingDisplay !== "friend" && item.recommendedBy && (
                     <span className="text-[11px] text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
                   )}
                 </div>
@@ -209,12 +227,21 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   </div>
                 )}
 
-                {/* Hot rating for watched items */}
+                {/* Hot rating for watched items — supports 0.5 increments */}
                 {isWatched && item.hotRating && (
                   <span className="flex items-center gap-0.5 mt-0.5" data-testid={`rating-hot-${item.id}`}>
-                    {Array.from({ length: item.hotRating }).map((_, i) => (
-                      <Flame key={i} className="w-2.5 h-2.5 text-primary fill-primary" />
-                    ))}
+                    {[1, 2, 3, 4, 5].map((i) => {
+                      const full = item.hotRating! >= i;
+                      const half = !full && item.hotRating! >= i - 0.5;
+                      return (full || half) ? (
+                        <span key={i} className="relative inline-block w-2.5 h-2.5">
+                          <Flame className="w-2.5 h-2.5 text-muted-foreground/20" />
+                          <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "55%" : "100%" }}>
+                            <Flame className="w-2.5 h-2.5 text-primary fill-primary" />
+                          </span>
+                        </span>
+                      ) : null;
+                    })}
                   </span>
                 )}
 

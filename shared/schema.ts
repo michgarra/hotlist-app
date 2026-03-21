@@ -54,7 +54,7 @@ export const recommendations = pgTable("recommendations", {
   platform: text("platform"),
   status: text("status").notNull().default("Want to Watch"),
   notes: text("notes"),
-  hotRating: integer("hot_rating"),
+  hotRating: real("hot_rating"),
   tmdbId: integer("tmdb_id"),
   posterUrl: text("poster_url"),
   imdbRating: real("imdb_rating"),
