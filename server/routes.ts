@@ -364,6 +364,7 @@ export async function registerRoutes(
         platform: details.platform || item.platform,
         posterUrl: details.posterUrl || item.posterUrl,
         releaseDate: details.releaseDate || item.releaseDate,
+        censorRating: details.censorRating || item.censorRating,
       });
 
       res.json(updated);

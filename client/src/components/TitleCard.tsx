@@ -100,6 +100,14 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
     ? item.cast.split(",").map(c => c.trim()).slice(0, 2)
     : [];
 
+  // Format runtime as "1h 54m" or "54m"
+  const formatRuntime = (mins: number | null | undefined): string | null => {
+    if (!mins) return null;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
+  };
+
   const checkNewSeason = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setSeasonCheck({ checking: true, hasNew: null });
@@ -221,6 +229,15 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   )}
                   {firstGenre && (
                     <span className="text-[11px] text-muted-foreground/70" data-testid={`text-genre-${item.id}`}>{firstGenre}</span>
+                  )}
+                  {item.type === "Movie" && formatRuntime(item.runtime) && (
+                    <span className="text-[11px] text-muted-foreground/70" data-testid={`text-runtime-${item.id}`}>{formatRuntime(item.runtime)}</span>
+                  )}
+                  {item.type === "TV Show" && item.episodes && (
+                    <span className="text-[11px] text-muted-foreground/70" data-testid={`text-episodes-${item.id}`}>{item.episodes} eps</span>
+                  )}
+                  {item.censorRating && (
+                    <span className="text-[10px] font-medium px-1 py-0 rounded border border-muted-foreground/30 text-muted-foreground/70 leading-tight" data-testid={`badge-censor-${item.id}`}>{item.censorRating}</span>
                   )}
                   {item.platform && (
                     <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{shortenPlatform(item.platform)}</span>

@@ -50,6 +50,7 @@ function entryToRecommendation(entry: HotlistEntry): Recommendation {
     lastKnownSeasons: null,
     cast: null,
     director: null,
+    censorRating: null,
     sortOrder: null,
     createdAt: null,
   };

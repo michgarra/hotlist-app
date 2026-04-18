@@ -144,6 +144,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
         episodes: details.episodes || null,
         cast: details.cast ? (Array.isArray(details.cast) ? details.cast.join(", ") : details.cast) : null,
         director: details.director || null,
+        censorRating: details.censorRating || null,
         hotRating: isEditing ? editItem!.hotRating : null,
       };
 

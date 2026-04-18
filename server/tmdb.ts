@@ -32,6 +32,7 @@ export interface TmdbDetails {
   director: string | null;
   imdbRating: number | null;
   platform: string | null;
+  censorRating: string | null;
 }
 
 export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
@@ -73,11 +74,15 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const detailUrl = `${TMDB_BASE}/${mediaType}/${tmdbId}?api_key=${apiKey}&language=en-US`;
   const creditsUrl = `${TMDB_BASE}/${mediaType}/${tmdbId}/credits?api_key=${apiKey}&language=en-US`;
   const providersUrl = `${TMDB_BASE}/${mediaType}/${tmdbId}/watch/providers?api_key=${apiKey}`;
+  const ratingsUrl = mediaType === "movie"
+    ? `${TMDB_BASE}/movie/${tmdbId}/release_dates?api_key=${apiKey}`
+    : `${TMDB_BASE}/tv/${tmdbId}/content_ratings?api_key=${apiKey}`;
 
-  const [detailRes, creditsRes, providersRes] = await Promise.all([
+  const [detailRes, creditsRes, providersRes, ratingsRes] = await Promise.all([
     fetch(detailUrl),
     fetch(creditsUrl),
     fetch(providersUrl),
+    fetch(ratingsUrl),
   ]);
 
   if (!detailRes.ok) throw new Error("TMDB detail fetch failed");
@@ -85,6 +90,24 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const detail = await detailRes.json();
   const credits = creditsRes.ok ? await creditsRes.json() : { cast: [], crew: [] };
   const providers = providersRes.ok ? await providersRes.json() : { results: {} };
+  const ratingsData = ratingsRes.ok ? await ratingsRes.json() : { results: [] };
+
+  // Extract AU certification, fall back to US
+  let censorRating: string | null = null;
+  if (mediaType === "movie") {
+    const auEntry = (ratingsData.results || []).find((r: any) => r.iso_3166_1 === "AU");
+    const usEntry = (ratingsData.results || []).find((r: any) => r.iso_3166_1 === "US");
+    const entry = auEntry || usEntry;
+    if (entry) {
+      const cert = (entry.release_dates || []).find((rd: any) => rd.certification)?.certification;
+      censorRating = cert || null;
+    }
+  } else {
+    const auEntry = (ratingsData.results || []).find((r: any) => r.iso_3166_1 === "AU");
+    const usEntry = (ratingsData.results || []).find((r: any) => r.iso_3166_1 === "US");
+    const entry = auEntry || usEntry;
+    censorRating = entry?.rating || null;
+  }
 
   const cast = (credits.cast || []).slice(0, 5).map((c: any) => c.name);
   const director = (credits.crew || []).find((c: any) => c.job === "Director")?.name || null;
@@ -152,5 +175,6 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
     director,
     imdbRating: detail.vote_average ? Math.round(detail.vote_average * 10) / 10 : null,
     platform,
+    censorRating,
   };
 }
