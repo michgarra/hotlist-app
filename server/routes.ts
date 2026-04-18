@@ -47,19 +47,19 @@ export async function registerRoutes(
       const result = await pool.query(`
         SELECT
           tmdb_id,
-          title,
-          type,
-          genre,
-          poster_url,
-          imdb_rating,
-          rt_rating,
-          overview,
+          MAX(title) AS title,
+          MAX(type) AS type,
+          MAX(genre) AS genre,
+          MAX(poster_url) AS poster_url,
+          MAX(imdb_rating) AS imdb_rating,
+          MAX(rt_rating) AS rt_rating,
+          MAX(overview) AS overview,
           COUNT(DISTINCT user_id)::int AS user_count,
           COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int AS recent_count,
           COUNT(CASE WHEN created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days' THEN 1 END)::int AS prev_count
         FROM recommendations
         WHERE tmdb_id IS NOT NULL
-        GROUP BY tmdb_id, title, type, genre, poster_url, imdb_rating, rt_rating, overview
+        GROUP BY tmdb_id
         ORDER BY user_count DESC, recent_count DESC
         LIMIT 50
       `);
