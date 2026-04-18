@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Pencil, X } from "lucide-react";
+import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Pencil, X, RefreshCw } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
 
 interface DetailModalProps {
@@ -12,6 +14,21 @@ interface DetailModalProps {
 }
 
 export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalProps) {
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!item?.tmdbId) return;
+    setRefreshing(true);
+    try {
+      await apiRequest("POST", `/api/recommendations/${item.id}/refresh-metadata`);
+      await queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      setRefreshed(true);
+      setTimeout(() => setRefreshed(false), 3000);
+    } catch {}
+    setRefreshing(false);
+  };
+
   if (!item) return null;
 
   const castList = item.cast ? item.cast.split(",").map(c => c.trim()).filter(Boolean) : [];
@@ -165,21 +182,36 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
-          {onEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                onOpenChange(false);
-                onEdit(item);
-              }}
-              data-testid="button-edit-title"
-            >
-              <Pencil className="w-3.5 h-3.5 mr-2" />
-              Edit Details
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {item.tmdbId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                data-testid="button-refresh-metadata"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshed ? "Updated!" : refreshing ? "Refreshing…" : "Refresh Ratings"}
+              </Button>
+            )}
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => {
+                  onOpenChange(false);
+                  onEdit(item);
+                }}
+                data-testid="button-edit-title"
+              >
+                <Pencil className="w-3.5 h-3.5 mr-2" />
+                Edit Details
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

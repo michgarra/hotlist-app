@@ -278,5 +278,35 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/recommendations/:id/refresh-metadata", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const item = await storage.getRecommendation(Number(req.params.id));
+      if (!item || item.userId !== userId) return res.status(404).json({ message: "Not found" });
+      if (!item.tmdbId) return res.status(400).json({ message: "No TMDB ID stored for this title" });
+
+      const mediaType = item.type === "Movie" ? "movie" : "tv";
+      const details = await getTmdbDetails(item.tmdbId, mediaType);
+
+      const updated = await storage.updateRecommendation(item.id, {
+        imdbRating: details.imdbRating,
+        overview: details.overview || item.overview,
+        cast: details.cast.join(", ") || item.cast,
+        director: details.director || item.director,
+        runtime: details.runtime ?? item.runtime,
+        seasons: details.seasons ?? item.seasons,
+        episodes: details.episodes ?? item.episodes,
+        genre: details.genres.join(", ") || item.genre,
+        platform: details.platform || item.platform,
+        posterUrl: details.posterUrl || item.posterUrl,
+        releaseDate: details.releaseDate || item.releaseDate,
+      });
+
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to refresh metadata" });
+    }
+  });
+
   return httpServer;
 }
