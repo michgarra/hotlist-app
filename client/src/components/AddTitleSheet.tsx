@@ -128,7 +128,11 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
         genre: details.genres ? (Array.isArray(details.genres) ? details.genres.join(", ") : details.genres) : null,
         recommendedBy: recommendedBy || null,
         platform: platform || details.platform || null,
-        status: isEditing ? editItem!.status : "Want to Watch",
+        status: isEditing ? editItem!.status : (() => {
+          const rd = details.releaseDate || selectedItem.releaseDate;
+          if (rd && new Date(rd + "T00:00:00") > new Date()) return "Coming Soon";
+          return "Want to Watch";
+        })(),
         notes: notes || null,
         tmdbId: selectedItem.id || null,
         posterUrl: details.posterUrl || selectedItem.posterUrl || null,

@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Star, Flame, Tv, Film, RefreshCw, GripVertical } from "lucide-react";
+import { Share2, Star, Flame, Tv, Film, RefreshCw, GripVertical, CalendarClock } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
 
@@ -81,6 +81,16 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
 
   const isWatched = item.status === "Watched";
   const isWatchedTvShow = isWatched && item.type === "TV Show" && item.tmdbId;
+  const isComingSoon = item.status === "Coming Soon";
+
+  const formatComingDate = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return "Coming Soon";
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return "Coming Soon";
+    const day = d.getDate();
+    const mon = d.toLocaleString("en-AU", { month: "short" });
+    return `Coming ${day} ${mon}`;
+  };
 
   // First genre only for compact display
   const firstGenre = item.genre ? item.genre.split(",")[0].trim() : null;
@@ -247,35 +257,49 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                 <div className="flex items-center gap-1 mt-1 flex-wrap">
                   {!isWatched && (
                     <>
-                      <button
-                        className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
-                          item.status === "Interested"
-                            ? "bg-primary text-white border-primary"
-                            : "border-border text-muted-foreground hover:border-primary/40"
-                        }`}
-                        onClick={(e) => handleStatusClick(e, "Interested")}
-                        data-testid={`button-interested-${item.id}`}
-                      >
-                        Hot
-                      </button>
-                      <button
-                        className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
-                          item.status === "Watching"
-                            ? "bg-primary text-white border-primary"
-                            : "border-border text-muted-foreground hover:border-primary/40"
-                        }`}
-                        onClick={(e) => handleStatusClick(e, "Watching")}
-                        data-testid={`button-watching-${item.id}`}
-                      >
-                        Watching
-                      </button>
-                      <button
-                        className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-primary/40 transition-colors"
-                        onClick={(e) => handleStatusClick(e, "Watched")}
-                        data-testid={`button-watched-${item.id}`}
-                      >
-                        Watched
-                      </button>
+                      {isComingSoon && (
+                        <button
+                          className="h-5 px-2 rounded-full border text-[9px] font-medium transition-colors bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-700 flex items-center gap-0.5"
+                          onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, "Want to Watch"); }}
+                          data-testid={`badge-coming-soon-${item.id}`}
+                        >
+                          <CalendarClock className="w-2.5 h-2.5" />
+                          {formatComingDate(item.releaseDate)}
+                        </button>
+                      )}
+                      {!isComingSoon && (
+                        <>
+                          <button
+                            className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
+                              item.status === "Interested"
+                                ? "bg-primary text-white border-primary"
+                                : "border-border text-muted-foreground hover:border-primary/40"
+                            }`}
+                            onClick={(e) => handleStatusClick(e, "Interested")}
+                            data-testid={`button-interested-${item.id}`}
+                          >
+                            Hot
+                          </button>
+                          <button
+                            className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
+                              item.status === "Watching"
+                                ? "bg-primary text-white border-primary"
+                                : "border-border text-muted-foreground hover:border-primary/40"
+                            }`}
+                            onClick={(e) => handleStatusClick(e, "Watching")}
+                            data-testid={`button-watching-${item.id}`}
+                          >
+                            Watching
+                          </button>
+                          <button
+                            className="h-5 px-2 rounded-full border border-border text-[9px] font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                            onClick={(e) => handleStatusClick(e, "Watched")}
+                            data-testid={`button-watched-${item.id}`}
+                          >
+                            Watched
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                   {isWatched && (
