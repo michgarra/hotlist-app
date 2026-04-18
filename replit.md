@@ -46,7 +46,7 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - `client/src/components/SessionExpiredOverlay.tsx` - Session expiry overlay
 
 ## Font
-- Aptos (system font, Windows 11/Office) → Plus Jakarta Sans (Google Fonts) → Inter → sans-serif
+- Plus Jakarta Sans (Google Fonts) → Inter → sans-serif
 
 ## Color Theme
 - Primary: Orange (hsl 24 100% 50%) - Shows theme
