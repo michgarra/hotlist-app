@@ -13,6 +13,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { useQuery } from "@tanstack/react-query";
 import { useRecommendations, useUpdateRecommendation, useDeleteRecommendation } from "@/hooks/use-recommendations";
 import { TitleCard } from "@/components/TitleCard";
 import { AddTitleSheet } from "@/components/AddTitleSheet";
@@ -38,6 +39,20 @@ export default function Dashboard() {
   const updateMutation = useUpdateRecommendation();
   const deleteMutation = useDeleteRecommendation();
   const { user, logout } = useAuth();
+
+  const tmdbIds = useMemo(() =>
+    Array.from(new Set((serverItems as Recommendation[]).filter(i => i.tmdbId != null).map(i => i.tmdbId as number))),
+    [serverItems]
+  );
+  const { data: popularTagsMap = {} } = useQuery<Record<number, string[]>>({
+    queryKey: ["/api/popular-tags", tmdbIds],
+    queryFn: async () => {
+      const res = await apiRequest("POST", "/api/popular-tags", { tmdbIds });
+      return res.json();
+    },
+    enabled: tmdbIds.length > 0,
+    staleTime: 60000,
+  });
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -127,10 +142,17 @@ export default function Dashboard() {
     setHotRatingItem(item);
   };
 
-  const handleHotRatingSubmit = (id: number, rating: number) => {
+  const handleHotRatingSubmit = (id: number, rating: number, tags: string[], review: string) => {
     const item = serverItems.find((i: Recommendation) => i.id === id);
     const lastKnownSeasons = item?.type === "TV Show" && item?.seasons ? item.seasons : undefined;
-    updateMutation.mutate({ id, status: "Watched", hotRating: rating, ...(lastKnownSeasons ? { lastKnownSeasons } : {}) });
+    updateMutation.mutate({
+      id,
+      status: "Watched",
+      hotRating: rating,
+      watchTags: tags.length > 0 ? tags.join(", ") : null,
+      watchReview: review || null,
+      ...(lastKnownSeasons ? { lastKnownSeasons } : {}),
+    });
     setHotRatingItem(null);
   };
 
@@ -461,6 +483,7 @@ export default function Dashboard() {
                       onMarkWatched={handleMarkWatched}
                       isDragEnabled={isDragEnabled}
                       ratingDisplay={ratingDisplay}
+                      popularTags={item.tmdbId ? (popularTagsMap[item.tmdbId] ?? []) : []}
                     />
                   ))}
                 </SortableContext>

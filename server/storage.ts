@@ -30,6 +30,7 @@ export interface IStorage {
   createFriend(friend: InsertFriend & { userId: string }): Promise<Friend>;
   deleteFriend(id: number): Promise<void>;
   findFriendByName(userId: string, name: string): Promise<Friend | undefined>;
+  getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -148,6 +149,26 @@ export class DatabaseStorage implements IStorage {
     const [item] = await db.select().from(friends)
       .where(and(eq(friends.userId, userId), ilike(friends.name, name)));
     return item;
+  }
+
+  async getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>> {
+    if (!tmdbIds.length) return {};
+    const result = await db.execute(
+      sql`SELECT tmdb_id, tag, COUNT(*) as cnt
+          FROM recommendations,
+               unnest(string_to_array(watch_tags, ', ')) as tag
+          WHERE tmdb_id = ANY(${tmdbIds}::int[])
+            AND watch_tags IS NOT NULL
+          GROUP BY tmdb_id, tag
+          ORDER BY tmdb_id, cnt DESC`
+    );
+    const map: Record<number, string[]> = {};
+    for (const row of result.rows as any[]) {
+      const id = Number(row.tmdb_id);
+      if (!map[id]) map[id] = [];
+      if (map[id].length < 3) map[id].push(row.tag);
+    }
+    return map;
   }
 }
 

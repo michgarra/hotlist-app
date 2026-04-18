@@ -278,6 +278,17 @@ export async function registerRoutes(
     }
   });
 
+  // Popular tags aggregation
+  app.post("/api/popular-tags", async (req, res) => {
+    try {
+      const { tmdbIds } = z.object({ tmdbIds: z.array(z.number()) }).parse(req.body);
+      const tags = await storage.getPopularTags(tmdbIds);
+      res.json(tags);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch tags" });
+    }
+  });
+
   // List sharing routes
   app.get("/api/me/list-token", isAuthenticated, async (req, res) => {
     try {

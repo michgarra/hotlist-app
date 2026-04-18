@@ -51,6 +51,8 @@ function entryToRecommendation(entry: HotlistEntry): Recommendation {
     cast: null,
     director: null,
     censorRating: null,
+    watchTags: null,
+    watchReview: null,
     sortOrder: null,
     createdAt: null,
   };

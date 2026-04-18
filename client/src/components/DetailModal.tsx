@@ -94,6 +94,22 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
         )}
 
         <div className="p-5 space-y-4">
+          {/* User's own watch tags + review */}
+          {item.watchTags && (
+            <div className="flex flex-wrap gap-1.5" data-testid="detail-watch-tags">
+              {item.watchTags.split(", ").filter(Boolean).map(tag => (
+                <span key={tag} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {item.watchReview && (
+            <div data-testid="detail-watch-review">
+              <p className="text-sm text-muted-foreground italic leading-relaxed">"{item.watchReview}"</p>
+            </div>
+          )}
+
           {/* Ratings and runtime row */}
           <div className="flex items-center gap-4 flex-wrap">
             {item.imdbRating && (

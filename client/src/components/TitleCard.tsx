@@ -16,6 +16,7 @@ interface TitleCardProps {
   onMarkWatched: (item: Recommendation) => void;
   isDragEnabled?: boolean;
   ratingDisplay?: "imdb" | "rt" | "hot" | "friend";
+  popularTags?: string[];
 }
 
 // Shorten long streaming platform names for compact display
@@ -34,7 +35,7 @@ function shortenPlatform(name: string): string {
   return map[name] ?? name;
 }
 
-export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false, ratingDisplay = "imdb" }: TitleCardProps) {
+export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false, ratingDisplay = "imdb", popularTags = [] }: TitleCardProps) {
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [seasonCheck, setSeasonCheck] = useState<{ checking: boolean; hasNew: boolean | null; currentSeasons?: number }>({ checking: false, hasNew: null });
   const x = useMotionValue(0);
@@ -252,6 +253,17 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                     </span>
                   )}
                 </div>
+
+                {/* Community popular tags */}
+                {popularTags.length > 0 && (
+                  <div className="flex items-center gap-1 mt-0.5 flex-wrap" data-testid={`popular-tags-${item.id}`}>
+                    {popularTags.map(tag => (
+                      <span key={tag} className="px-1.5 py-0 text-[10px] font-medium rounded-full bg-primary/8 text-primary/70 border border-primary/15">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Hot rating for watched items — supports 0.5 increments */}
                 {isWatched && item.hotRating && (
