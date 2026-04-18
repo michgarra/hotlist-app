@@ -89,9 +89,53 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const cast = (credits.cast || []).slice(0, 5).map((c: any) => c.name);
   const director = (credits.crew || []).find((c: any) => c.job === "Director")?.name || null;
 
+  const CANONICAL: Record<string, string> = {
+    "netflix": "Netflix",
+    "netflix basic with ads": "Netflix",
+    "amazon prime video": "Prime Video",
+    "prime video": "Prime Video",
+    "amazon video": "Prime Video",
+    "disney plus": "Disney+",
+    "disney+": "Disney+",
+    "apple tv plus": "Apple TV+",
+    "apple tv+": "Apple TV+",
+    "apple itunes": "Apple TV+",
+    "hbo max": "Max",
+    "max": "Max",
+    "hulu": "Hulu",
+    "peacock": "Peacock",
+    "peacock premium": "Peacock",
+    "paramount plus": "Paramount+",
+    "paramount+ apple tv channel": "Paramount+",
+    "binge": "Binge",
+    "stan": "Stan",
+    "stan.": "Stan",
+    "foxtel now": "Foxtel",
+    "foxtel": "Foxtel",
+    "kayo sports": "Kayo",
+    "youtube premium": "YouTube Premium",
+    "google play movies": "Google Play",
+    "microsoft store": "Microsoft Store",
+    "vudu": "Vudu",
+  };
+
+  const normalizePlatform = (name: string): string => {
+    const key = name.toLowerCase().trim();
+    return CANONICAL[key] || name;
+  };
+
   const auProviders = providers.results?.AU || providers.results?.US || {};
   const flatrate = auProviders.flatrate || [];
-  const platform = flatrate.length > 0 ? flatrate[0].provider_name : null;
+  const seenNames = new Set<string>();
+  const platformNames: string[] = [];
+  for (const p of flatrate) {
+    const canonical = normalizePlatform(p.provider_name);
+    if (!seenNames.has(canonical) && platformNames.length < 3) {
+      seenNames.add(canonical);
+      platformNames.push(canonical);
+    }
+  }
+  const platform = platformNames.length > 0 ? platformNames.join(", ") : null;
 
   return {
     id: detail.id,
