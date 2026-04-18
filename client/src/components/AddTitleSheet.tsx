@@ -149,10 +149,10 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
 
       if (isEditing) {
         await updateMutation.mutateAsync({ id: editItem!.id, ...payload });
-        toast({ title: "Updated!", description: `"${selectedItem.title}" has been updated.` });
+        toast({ title: "Updated!", description: `"${selectedItem.title}" has been updated.`, duration: 2000 });
       } else {
         await createMutation.mutateAsync(payload);
-        toast({ title: "Added!", description: `"${selectedItem.title}" added to your Hotlist.` });
+        toast({ title: "Added!", description: `"${selectedItem.title}" added to your Hotlist.`, duration: 2000 });
       }
       resetForm();
       onOpenChange(false);
