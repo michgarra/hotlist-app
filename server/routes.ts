@@ -278,6 +278,70 @@ export async function registerRoutes(
     }
   });
 
+  // List sharing routes
+  app.get("/api/me/list-token", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const token = await storage.ensureListToken(userId);
+      res.json({ token, url: `${req.protocol}://${req.get("host")}/list/${token}` });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to get list token" });
+    }
+  });
+
+  app.get("/api/public-list/:token", async (req, res) => {
+    try {
+      const owner = await storage.getProfileByListToken(String(req.params.token));
+      if (!owner) return res.status(404).json({ message: "List not found" });
+      const items = await storage.getRecommendations(owner.userId);
+      const visible = items.filter(i => i.status !== "Watched");
+      res.json({ ownerName: owner.name, items: visible });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to load list" });
+    }
+  });
+
+  app.post("/api/public-list/:token/add", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { itemId } = z.object({ itemId: z.number() }).parse(req.body);
+      const owner = await storage.getProfileByListToken(String(req.params.token));
+      if (!owner) return res.status(404).json({ message: "List not found" });
+      const source = await storage.getRecommendation(itemId);
+      if (!source || source.userId !== owner.userId) return res.status(404).json({ message: "Item not found" });
+      const dupe = await storage.findDuplicateRecommendation(userId, source.title, source.type, source.tmdbId);
+      if (dupe) return res.status(409).json({ message: "Already in your list" });
+      const created = await storage.createRecommendation({
+        userId,
+        title: source.title,
+        type: source.type,
+        genre: source.genre,
+        platform: source.platform,
+        status: "Want to Watch",
+        recommendedBy: owner.name,
+        tmdbId: source.tmdbId,
+        posterUrl: source.posterUrl,
+        imdbRating: source.imdbRating,
+        rtRating: source.rtRating,
+        overview: source.overview,
+        releaseDate: source.releaseDate,
+        runtime: source.runtime,
+        seasons: source.seasons,
+        episodes: source.episodes,
+        cast: source.cast,
+        director: source.director,
+        notes: null,
+        hotRating: null,
+        sortOrder: null,
+        lastKnownSeasons: source.lastKnownSeasons,
+      });
+      res.json(created);
+    } catch (err: any) {
+      if (err.status === 409) return res.status(409).json({ message: "Already in your list" });
+      res.status(500).json({ message: err.message || "Failed to add item" });
+    }
+  });
+
   app.post("/api/recommendations/:id/refresh-metadata", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);

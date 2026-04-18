@@ -1,4 +1,5 @@
-import { pgTable, text, serial, timestamp, integer, real, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, varchar, index, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -12,6 +13,7 @@ export const userProfiles = pgTable("user_profiles", {
   ageRange: text("age_range").notNull(),
   streamingApps: text("streaming_apps").array().notNull(),
   preferredRating: text("preferred_rating").notNull().default("imdb"),
+  listToken: varchar("list_token", { length: 36 }).default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("user_profiles_user_id_idx").on(table.userId),

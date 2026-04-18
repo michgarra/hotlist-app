@@ -22,6 +22,8 @@ export interface IStorage {
   deleteRecommendation(id: number): Promise<void>;
   findDuplicateRecommendation(userId: string, title: string, type: string, tmdbId?: number | null): Promise<Recommendation | undefined>;
   getUserProfile(userId: string): Promise<UserProfile | undefined>;
+  getProfileByListToken(token: string): Promise<UserProfile | undefined>;
+  ensureListToken(userId: string): Promise<string>;
   createUserProfile(profile: InsertUserProfile & { userId: string }): Promise<UserProfile>;
   updateUserProfile(id: number, updates: Partial<InsertUserProfile> & { userId: string }): Promise<UserProfile>;
   getFriends(userId: string): Promise<Friend[]>;
@@ -99,6 +101,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userProfiles.userId, userId))
       .limit(1);
     return profile;
+  }
+
+  async getProfileByListToken(token: string): Promise<UserProfile | undefined> {
+    const [profile] = await db.select().from(userProfiles)
+      .where(eq(userProfiles.listToken, token))
+      .limit(1);
+    return profile;
+  }
+
+  async ensureListToken(userId: string): Promise<string> {
+    const profile = await this.getUserProfile(userId);
+    if (!profile) throw new Error("Profile not found");
+    if (profile.listToken) return profile.listToken;
+    const token = crypto.randomUUID();
+    await db.update(userProfiles).set({ listToken: token }).where(eq(userProfiles.userId, userId));
+    return token;
   }
 
   async createUserProfile(profile: InsertUserProfile & { userId: string }): Promise<UserProfile> {

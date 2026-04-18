@@ -24,7 +24,8 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - "All Ratings" display toggle on My List/Watched: IMDb ★ / RT 🍅 / 🔥 Mine / Friend — changes which rating shows on each card
 - Detail modal with cast, director, synopsis, runtime/episodes
 - Friends panel (slide-up): add/remove friends, search friends list (shown when 5+ friends), tap a friend to expand and see items they've recommended; tap item to open detail
-- Avatar in header opens settings popover with user name/email and sign-out button
+- Avatar in header opens settings popover with user name/email, "Share my list" link, and sign-out button
+- **Share My List**: Each user has a private share token (UUID in user_profiles.list_token); "Share my list" generates a unique URL; recipient opens /list/:token, sees all non-Watched items, taps "+ Add" to copy any title to their own list (with full metadata); duplicate prevention; works for non-logged-in viewers too (read-only)
 - Beta allowlist via BETA_EMAILS env var
 - Session expiry overlay with "Log back in" prompt
 
@@ -44,6 +45,7 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - `client/src/components/HotRatingDialog.tsx` - Flame rating dialog
 - `client/src/components/DetailModal.tsx` - Full detail view
 - `client/src/components/SessionExpiredOverlay.tsx` - Session expiry overlay
+- `client/src/pages/PublicList.tsx` - Public shared list view at /list/:token
 
 ## Font
 - Plus Jakarta Sans (Google Fonts) → Inter → sans-serif

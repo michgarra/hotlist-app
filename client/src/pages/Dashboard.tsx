@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings } from "lucide-react";
+import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2 } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -241,7 +241,26 @@ export default function Dashboard() {
                   </div>
                 </div>
                 {/* Actions */}
-                <div className="p-2">
+                <div className="p-2 space-y-0.5">
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
+                    onClick={async () => {
+                      try {
+                        const res = await apiRequest("GET", "/api/me/list-token");
+                        const data = await res.json();
+                        if (navigator.share) {
+                          await navigator.share({ title: "My Hotlist", url: data.url });
+                        } else {
+                          await navigator.clipboard.writeText(data.url);
+                          alert("Link copied to clipboard!");
+                        }
+                      } catch {}
+                    }}
+                    data-testid="button-share-list"
+                  >
+                    <Link2 className="w-4 h-4 text-muted-foreground" />
+                    Share my list
+                  </button>
                   <button
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
                     onClick={() => logout()}
