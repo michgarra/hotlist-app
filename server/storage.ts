@@ -64,9 +64,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation> {
+    const finalUpdates = updates.status === "Watched"
+      ? { ...updates, sortOrder: null }
+      : updates;
     const [item] = await db
       .update(recommendations)
-      .set(updates)
+      .set(finalUpdates)
       .where(eq(recommendations.id, id))
       .returning();
     return item;
