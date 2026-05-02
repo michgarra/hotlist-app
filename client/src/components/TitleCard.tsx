@@ -96,10 +96,15 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
   // First genre only for compact display
   const firstGenre = item.genre ? item.genre.split(",")[0].trim() : null;
 
-  // First two cast names for compact display
-  const topCast = item.cast
-    ? item.cast.split(",").map(c => c.trim()).slice(0, 2)
+  // User's own tags on watched items
+  const userTags = item.watchTags
+    ? item.watchTags.split(",").map(t => t.trim()).filter(Boolean).slice(0, 3)
     : [];
+
+  // Review snippet — first 90 chars
+  const reviewSnippet = item.watchReview
+    ? item.watchReview.trim().slice(0, 90) + (item.watchReview.trim().length > 90 ? "…" : "")
+    : null;
 
   // Format runtime as "1h 54m" or "54m"
   const formatRuntime = (mins: number | null | undefined): string | null => {
@@ -172,9 +177,10 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
           whileTap={isSwipeDragging ? undefined : { scale: 0.98 }}
           data-testid={`card-body-${item.id}`}
         >
-          <div className="p-2">
-            <div className="flex items-start gap-2">
-              <div className="flex-shrink-0 w-10 h-14 rounded overflow-hidden bg-muted" data-testid={`img-poster-${item.id}`}>
+          <div className="p-2.5">
+            <div className="flex items-start gap-2.5">
+              {/* Poster — larger for visual anchor */}
+              <div className="flex-shrink-0 w-14 h-[80px] rounded-md overflow-hidden bg-muted shadow-sm" data-testid={`img-poster-${item.id}`}>
                 {item.posterUrl ? (
                   <img
                     src={item.posterUrl}
@@ -185,15 +191,16 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     {item.type === "Movie" ? (
-                      <Film className="w-4 h-4 text-muted-foreground" />
+                      <Film className="w-5 h-5 text-muted-foreground" />
                     ) : (
-                      <Tv className="w-4 h-4 text-muted-foreground" />
+                      <Tv className="w-5 h-5 text-muted-foreground" />
                     )}
                   </div>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
+                {/* Title + type badge */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h3 className="font-bold text-foreground text-[13px] leading-tight" data-testid={`text-title-${item.id}`}>
                     {item.title}
@@ -203,9 +210,8 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   </Badge>
                 </div>
 
-                {/* Metadata row: rating, genre, platform, who recommended */}
+                {/* Metadata row: rating, genre, runtime, platform, recommender */}
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  {/* Rating slot — switches based on ratingDisplay */}
                   {ratingDisplay === "imdb" && item.imdbRating && (
                     <span className="flex items-center gap-0.5 text-[11px]" data-testid={`text-rating-${item.id}`}>
                       <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
@@ -246,41 +252,53 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   {ratingDisplay !== "friend" && item.recommendedBy && (
                     <span className="text-[11px] text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
                   )}
-                  {/* Cast folded into metadata row */}
-                  {topCast.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground/50 truncate" data-testid={`text-cast-${item.id}`}>
-                      {topCast.join(" · ")}
-                    </span>
-                  )}
                 </div>
 
-                {/* Community popular tags */}
-                {popularTags.length > 0 && (
-                  <div className="flex items-center gap-1 mt-0.5 flex-wrap" data-testid={`popular-tags-${item.id}`}>
+                {/* Watched: flame rating + user's own tags + review snippet */}
+                {isWatched && (
+                  <div className="mt-1 space-y-1">
+                    {item.hotRating && (
+                      <span className="flex items-center gap-0.5" data-testid={`rating-hot-${item.id}`}>
+                        {[1, 2, 3, 4, 5].map((i) => {
+                          const full = item.hotRating! >= i;
+                          const half = !full && item.hotRating! >= i - 0.5;
+                          return (full || half) ? (
+                            <span key={i} className="relative inline-block w-3 h-3">
+                              <Flame className="w-3 h-3 text-muted-foreground/20" />
+                              <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "55%" : "100%" }}>
+                                <Flame className="w-3 h-3 text-primary fill-primary" />
+                              </span>
+                            </span>
+                          ) : null;
+                        })}
+                      </span>
+                    )}
+                    {userTags.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap" data-testid={`user-tags-${item.id}`}>
+                        {userTags.map(tag => (
+                          <span key={tag} className="px-1.5 py-0 text-[10px] font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {reviewSnippet && (
+                      <p className="text-[11px] text-muted-foreground italic leading-snug" data-testid={`review-snippet-${item.id}`}>
+                        "{reviewSnippet}"
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Community popular tags — for non-watched items */}
+                {!isWatched && popularTags.length > 0 && (
+                  <div className="flex items-center gap-1 mt-1 flex-wrap" data-testid={`popular-tags-${item.id}`}>
                     {popularTags.map(tag => (
                       <span key={tag} className="px-1.5 py-0 text-[10px] font-medium rounded-full bg-primary/8 text-primary/70 border border-primary/15">
                         {tag}
                       </span>
                     ))}
                   </div>
-                )}
-
-                {/* Hot rating for watched items — supports 0.5 increments */}
-                {isWatched && item.hotRating && (
-                  <span className="flex items-center gap-0.5 mt-0.5" data-testid={`rating-hot-${item.id}`}>
-                    {[1, 2, 3, 4, 5].map((i) => {
-                      const full = item.hotRating! >= i;
-                      const half = !full && item.hotRating! >= i - 0.5;
-                      return (full || half) ? (
-                        <span key={i} className="relative inline-block w-2.5 h-2.5">
-                          <Flame className="w-2.5 h-2.5 text-muted-foreground/20" />
-                          <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "55%" : "100%" }}>
-                            <Flame className="w-2.5 h-2.5 text-primary fill-primary" />
-                          </span>
-                        </span>
-                      ) : null;
-                    })}
-                  </span>
                 )}
 
                 <div className="flex items-center gap-1 mt-1 flex-wrap">
