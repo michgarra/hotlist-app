@@ -223,7 +223,14 @@ export default function Dashboard() {
   }, [serverItems]);
 
   const uniqueFriends = useMemo(() => {
-    return Array.from(new Set(serverItems.map((i: Recommendation) => i.recommendedBy).filter(Boolean))).sort() as string[];
+    const seen = new Map<string, string>();
+    serverItems.forEach((i: Recommendation) => {
+      if (i.recommendedBy) {
+        const key = i.recommendedBy.trim().toLowerCase();
+        if (!seen.has(key)) seen.set(key, i.recommendedBy.trim());
+      }
+    });
+    return Array.from(seen.values()).sort();
   }, [serverItems]);
 
   const applyFilters = (list: Recommendation[]) => list.filter((item: Recommendation) => {
@@ -637,6 +644,9 @@ export default function Dashboard() {
               ) : (
                 <ul className="space-y-0.5">
                   {friendsList
+                    .filter((f: Friend, idx: number, arr: Friend[]) =>
+                      arr.findIndex(x => x.name.trim().toLowerCase() === f.name.trim().toLowerCase()) === idx
+                    )
                     .filter((f: Friend) => !friendSearch || f.name.toLowerCase().includes(friendSearch.toLowerCase()))
                     .map((f: Friend) => {
                       const theirItems = serverItems.filter((i: Recommendation) =>
