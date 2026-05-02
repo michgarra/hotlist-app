@@ -19,6 +19,16 @@ const STREAMING_APPS = [
   { name: "Paramount+", color: "bg-blue-500" },
   { name: "Disney+", color: "bg-blue-700" },
   { name: "Britbox", color: "bg-red-700" },
+  { name: "Foxtel Now", color: "bg-orange-600" },
+  { name: "SBS On Demand", color: "bg-red-500" },
+  { name: "ABC iview", color: "bg-emerald-700" },
+  { name: "Kayo", color: "bg-yellow-600" },
+  { name: "Hayu", color: "bg-pink-600" },
+  { name: "7Plus", color: "bg-orange-500" },
+  { name: "10 Play", color: "bg-pink-500" },
+  { name: "9Now", color: "bg-indigo-500" },
+  { name: "MUBI", color: "bg-stone-700" },
+  { name: "DocPlay", color: "bg-teal-600" },
 ];
 
 export default function Onboarding() {
