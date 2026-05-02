@@ -14,7 +14,8 @@ import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 import { SessionExpiredOverlay } from "@/components/SessionExpiredOverlay";
 import { Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 function AuthenticatedApp() {
   const { user, logout, isBeta } = useAuth();
@@ -45,11 +46,44 @@ function AuthenticatedApp() {
 
 function AppContent() {
   const { user, isLoading } = useAuth();
+  const qc = useQueryClient();
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
+
+  // If auth check takes more than 8 seconds, show a recovery option
+  // instead of leaving users stuck on a black screen forever (Angie's issue)
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTooLong(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoadingTooLong(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-black">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        {loadingTooLong && (
+          <div className="text-center px-6 space-y-3">
+            <p className="text-sm text-gray-400">Taking longer than usual…</p>
+            <button
+              onClick={() => {
+                qc.resetQueries({ queryKey: ["/api/auth/user"] });
+                setLoadingTooLong(false);
+              }}
+              className="text-sm text-primary underline underline-offset-2"
+            >
+              Tap to retry
+            </button>
+            <p className="text-xs text-gray-600">
+              Or{" "}
+              <a href="/" className="underline underline-offset-2 text-gray-500">
+                reload the page
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     );
   }

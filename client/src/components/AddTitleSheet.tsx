@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [newFriendName, setNewFriendName] = useState("");
   const [sheetStyle, setSheetStyle] = useState<React.CSSProperties>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -45,10 +46,11 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
     const update = () => {
       const vv = window.visualViewport;
       if (!vv) return;
-      const bottomOffset = window.innerHeight - vv.height - vv.offsetTop;
+      // On iOS the keyboard raises the visual viewport — keep sheet anchored to visible area
+      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
       setSheetStyle({
         height: `${vv.height * 0.92}px`,
-        bottom: `${bottomOffset}px`,
+        bottom: `${Math.max(0, keyboardHeight)}px`,
       });
     };
     update();
@@ -59,6 +61,16 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
       window.visualViewport?.removeEventListener("scroll", update);
     };
   }, [open]);
+
+  // Delayed focus: wait for sheet slide-up animation (~350ms) before focusing
+  // so the keyboard appears AFTER the sheet has fully positioned itself on iOS
+  useEffect(() => {
+    if (!open || selectedItem) return;
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [open, selectedItem]);
 
   const { data: searchResults = [], isLoading: isSearching } = useTmdbSearch(debouncedQuery);
   const createMutation = useCreateRecommendation();
@@ -206,15 +218,20 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={searchInputRef}
                 placeholder="Search movies and TV shows..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
-                autoFocus
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="none"
                 spellCheck={false}
+                inputMode="search"
+                onFocus={() => {
+                  // Scroll input into view on iOS where keyboard can obscure it
+                  setTimeout(() => searchInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 100);
+                }}
                 data-testid="input-search-tmdb"
               />
             </div>
