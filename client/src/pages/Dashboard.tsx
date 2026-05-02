@@ -34,6 +34,37 @@ import type { Recommendation, Friend } from "@shared/schema";
 
 type ActiveTab = "mylist" | "hotlist" | "watched";
 
+// Normalise TMDB's verbose/inconsistent platform names to canonical display names.
+// Also handles comma-separated multi-platform strings stored per item.
+function normalizePlatform(raw: string): string {
+  const s = raw.trim().toLowerCase();
+  if (s.includes("netflix")) return "Netflix";
+  if (s.includes("disney")) return "Disney+";
+  if (s.includes("apple tv") || s === "apple tv+") return "Apple TV+";
+  if (s.includes("amazon") || s === "prime" || s.includes("prime video")) return "Amazon Prime";
+  if (s.includes("stan")) return "Stan";
+  if (s.includes("binge")) return "Binge";
+  if (s.includes("hbo")) return "HBO";
+  if (s.includes("paramount")) return "Paramount+";
+  if (s.includes("britbox")) return "BritBox";
+  if (s.includes("foxtel")) return "Foxtel Now";
+  if (s.includes("sbs")) return "SBS On Demand";
+  if (s.includes("abc iview") || s.includes("abc tv") || s === "abc") return "ABC iview";
+  if (s.includes("kayo")) return "Kayo";
+  if (s.includes("hayu")) return "Hayu";
+  if (s.includes("7plus") || s.includes("7 plus")) return "7Plus";
+  if (s.includes("10 play") || s.includes("10play")) return "10 Play";
+  if (s.includes("9now")) return "9Now";
+  if (s.includes("mubi")) return "MUBI";
+  if (s.includes("docplay")) return "DocPlay";
+  return raw.trim();
+}
+
+function getPlatforms(platform: string | null): string[] {
+  if (!platform) return [];
+  return platform.split(",").map(p => normalizePlatform(p.trim())).filter(Boolean);
+}
+
 export default function Dashboard() {
   const { data: serverItems = [], isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
   const updateMutation = useUpdateRecommendation();
@@ -183,10 +214,10 @@ export default function Dashboard() {
   const uniquePlatforms = useMemo(() => {
     const seen = new Map<string, string>();
     serverItems.forEach((i: Recommendation) => {
-      if (i.platform) {
-        const key = i.platform.trim().toLowerCase();
-        if (!seen.has(key)) seen.set(key, i.platform.trim());
-      }
+      getPlatforms(i.platform).forEach(p => {
+        const key = p.toLowerCase();
+        if (!seen.has(key)) seen.set(key, p);
+      });
     });
     return Array.from(seen.values()).sort();
   }, [serverItems]);
@@ -201,7 +232,7 @@ export default function Dashboard() {
       (item.genre && item.genre.toLowerCase().includes(search.toLowerCase()));
     const matchesType = typeFilter === "all" || item.type === typeFilter;
     const matchesGenre = genreFilter === "all" || (item.genre && item.genre.includes(genreFilter));
-    const matchesPlatform = platformFilter === "all" || item.platform === platformFilter;
+    const matchesPlatform = platformFilter === "all" || getPlatforms(item.platform).includes(platformFilter);
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
     const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
     return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating;
