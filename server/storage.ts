@@ -13,6 +13,35 @@ import {
 } from "@shared/schema";
 import { eq, desc, ilike, and, asc, sql } from "drizzle-orm";
 
+export interface AdminUserRow {
+  userId: string;
+  name: string;
+  ageRange: string;
+  streamingApps: string[];
+  joinedAt: Date | null;
+  totalTitles: number;
+  watching: number;
+  watched: number;
+  tagged: number;
+  reviewed: number;
+  friends: number;
+  lastAdded: Date | null;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalTitles: number;
+  totalWatched: number;
+  totalTagged: number;
+  totalReviewed: number;
+  avgListSize: number;
+  users: AdminUserRow[];
+  topTitles: { title: string; posterUrl: string | null; type: string; userCount: number }[];
+  topTags: { tag: string; count: number }[];
+  weeklyAdded: { week: string; count: number }[];
+  genreBreakdown: { genre: string; count: number }[];
+}
+
 export interface IStorage {
   getRecommendations(userId: string): Promise<Recommendation[]>;
   reorderRecommendations(userId: string, orderedIds: number[]): Promise<void>;
@@ -31,6 +60,7 @@ export interface IStorage {
   deleteFriend(id: number): Promise<void>;
   findFriendByName(userId: string, name: string): Promise<Friend | undefined>;
   getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>>;
+  getAdminStats(): Promise<AdminStats>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -169,6 +199,140 @@ export class DatabaseStorage implements IStorage {
       if (map[id].length < 3) map[id].push(row.tag);
     }
     return map;
+  }
+
+  async getAdminStats(): Promise<AdminStats> {
+    const [userStats, titleStats, topTitlesRes, topTagsRes, weeklyRes, genreRes, friendCounts] = await Promise.all([
+      // Per-user breakdown joined with profiles
+      db.execute(sql`
+        SELECT
+          p.user_id,
+          p.name,
+          p.age_range,
+          p.streaming_apps,
+          p.created_at as joined_at,
+          COUNT(r.id) as total_titles,
+          COUNT(r.id) FILTER (WHERE r.status = 'Watching') as watching,
+          COUNT(r.id) FILTER (WHERE r.status = 'Watched') as watched,
+          COUNT(r.id) FILTER (WHERE r.watch_tags IS NOT NULL) as tagged,
+          COUNT(r.id) FILTER (WHERE r.watch_review IS NOT NULL AND r.watch_review != '') as reviewed,
+          MAX(r.created_at) as last_added
+        FROM user_profiles p
+        LEFT JOIN recommendations r ON r.user_id = p.user_id
+        GROUP BY p.user_id, p.name, p.age_range, p.streaming_apps, p.created_at
+        ORDER BY p.created_at DESC
+      `),
+      // Totals
+      db.execute(sql`
+        SELECT
+          COUNT(DISTINCT user_id) as total_users,
+          COUNT(*) as total_titles,
+          COUNT(*) FILTER (WHERE status = 'Watched') as total_watched,
+          COUNT(*) FILTER (WHERE watch_tags IS NOT NULL) as total_tagged,
+          COUNT(*) FILTER (WHERE watch_review IS NOT NULL AND watch_review != '') as total_reviewed
+        FROM recommendations
+      `),
+      // Top titles by user count
+      db.execute(sql`
+        SELECT title, poster_url, type, COUNT(DISTINCT user_id) as user_count
+        FROM recommendations
+        WHERE tmdb_id IS NOT NULL
+        GROUP BY title, poster_url, type
+        ORDER BY user_count DESC
+        LIMIT 10
+      `),
+      // Top tags
+      db.execute(sql`
+        SELECT tag, COUNT(*) as count
+        FROM recommendations,
+             unnest(string_to_array(watch_tags, ', ')) as tag
+        WHERE watch_tags IS NOT NULL
+        GROUP BY tag
+        ORDER BY count DESC
+        LIMIT 15
+      `),
+      // Weekly activity (last 8 weeks)
+      db.execute(sql`
+        SELECT
+          TO_CHAR(DATE_TRUNC('week', created_at), 'DD Mon') as week,
+          COUNT(*) as count
+        FROM recommendations
+        WHERE created_at >= NOW() - INTERVAL '8 weeks'
+        GROUP BY DATE_TRUNC('week', created_at)
+        ORDER BY DATE_TRUNC('week', created_at)
+      `),
+      // Genre breakdown
+      db.execute(sql`
+        SELECT
+          TRIM(genre_part) as genre,
+          COUNT(*) as count
+        FROM recommendations,
+             unnest(string_to_array(genre, ', ')) as genre_part
+        WHERE genre IS NOT NULL
+        GROUP BY TRIM(genre_part)
+        ORDER BY count DESC
+        LIMIT 10
+      `),
+      // Friend counts per user
+      db.execute(sql`
+        SELECT user_id, COUNT(*) as friend_count
+        FROM friends
+        GROUP BY user_id
+      `),
+    ]);
+
+    const friendMap: Record<string, number> = {};
+    for (const row of friendCounts.rows as any[]) {
+      friendMap[row.user_id] = Number(row.friend_count);
+    }
+
+    const totals = (titleStats.rows[0] as any) || {};
+
+    const users: AdminUserRow[] = (userStats.rows as any[]).map(r => ({
+      userId: r.user_id,
+      name: r.name,
+      ageRange: r.age_range,
+      streamingApps: r.streaming_apps || [],
+      joinedAt: r.joined_at ? new Date(r.joined_at) : null,
+      totalTitles: Number(r.total_titles),
+      watching: Number(r.watching),
+      watched: Number(r.watched),
+      tagged: Number(r.tagged),
+      reviewed: Number(r.reviewed),
+      friends: friendMap[r.user_id] || 0,
+      lastAdded: r.last_added ? new Date(r.last_added) : null,
+    }));
+
+    const totalUsers = users.length;
+    const totalTitles = Number(totals.total_titles || 0);
+
+    return {
+      totalUsers,
+      totalTitles,
+      totalWatched: Number(totals.total_watched || 0),
+      totalTagged: Number(totals.total_tagged || 0),
+      totalReviewed: Number(totals.total_reviewed || 0),
+      avgListSize: totalUsers > 0 ? Math.round(totalTitles / totalUsers) : 0,
+      users,
+      topTitles: (topTitlesRes.rows as any[]).map(r => ({
+        title: r.title,
+        posterUrl: r.poster_url,
+        type: r.type,
+        userCount: Number(r.user_count),
+      })),
+      topTags: (topTagsRes.rows as any[]).map(r => ({
+        tag: r.tag,
+        count: Number(r.count),
+      })),
+      weeklyAdded: (weeklyRes.rows as any[]).map(r => ({
+        week: r.week,
+        count: Number(r.count),
+      })),
+      genreBreakdown: (genreRes.rows as any[]).map(r => ({
+        genre: r.genre,
+        count: Number(r.count),
+      })),
+    };
   }
 }
 

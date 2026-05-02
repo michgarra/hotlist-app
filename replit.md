@@ -61,6 +61,12 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - `SESSION_SECRET` - Session signing key
 - `BETA_EMAILS` - Optional comma-separated list of allowed emails (open access if not set)
 
+## Admin Board
+- Route: `/admin` (requires auth + ADMIN_USER_IDS env var containing your user ID)
+- Shows: overview stats, per-user table (list size, watched, tagged, friends, last active), weekly activity chart, top titles by user count, top community tags, genre breakdown
+- Protected server-side via `ADMIN_USER_IDS` env var (comma-separated user IDs)
+
 ## Deployment
 - Reserved VM (always-on, no cold starts)
 - Build: `npm run build` → Run: `node ./dist/index.cjs`
+- Self-ping keepalive: server pings `/api/health` every 4 min in production to prevent idle termination

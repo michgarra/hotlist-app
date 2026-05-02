@@ -10,6 +10,7 @@ import Landing from "@/pages/Landing";
 import BetaWaitlist from "@/pages/BetaWaitlist";
 import SharedTitle from "@/pages/SharedTitle";
 import PublicList from "@/pages/PublicList";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 import { SessionExpiredOverlay } from "@/components/SessionExpiredOverlay";
 import { Loader2 } from "lucide-react";
@@ -57,6 +58,9 @@ function AppContent() {
     <Switch>
       <Route path="/shared/:id" component={SharedTitle} />
       <Route path="/list/:token" component={PublicList} />
+      <Route path="/admin">
+        {user ? <Admin /> : <Landing />}
+      </Route>
       <Route path="/onboarding">
         {user ? <Onboarding /> : <Landing />}
       </Route>

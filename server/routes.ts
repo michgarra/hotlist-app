@@ -284,6 +284,17 @@ export async function registerRoutes(
   });
 
   // Popular tags aggregation
+  // Admin stats — requires ADMIN_USER_IDS env var
+  app.get("/api/admin/stats", isAuthenticated, async (req: any, res) => {
+    const adminIds = (process.env.ADMIN_USER_IDS || "").split(",").map(s => s.trim()).filter(Boolean);
+    const userId = req.user?.id || req.user?.claims?.sub;
+    if (!adminIds.includes(userId)) {
+      return res.status(403).json({ message: "Forbidden", yourUserId: userId });
+    }
+    const stats = await storage.getAdminStats();
+    res.json(stats);
+  });
+
   app.post("/api/popular-tags", async (req, res) => {
     try {
       const { tmdbIds } = z.object({ tmdbIds: z.array(z.number()) }).parse(req.body);
