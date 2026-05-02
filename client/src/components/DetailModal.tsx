@@ -98,6 +98,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
 
   const castList = item.cast ? item.cast.split(",").map(c => c.trim()).filter(Boolean) : [];
   const userTags = item.watchTags ? item.watchTags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  const watchWithList = item.watchWith ? item.watchWith.split(",").map(w => w.trim()).filter(Boolean) : [];
   const runtime = formatRuntime(item.runtime);
   const platformDisplay = item.platform ? normalizePlatformDisplay(item.platform) : null;
 
@@ -283,6 +284,18 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
           {item.watchReview && (
             <div className="bg-muted/50 rounded-lg px-4 py-3 border-l-2 border-primary/40" data-testid="detail-watch-review">
               <p className="text-sm text-foreground italic leading-relaxed">"{item.watchReview}"</p>
+            </div>
+          )}
+
+          {/* Watch with */}
+          {watchWithList.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap" data-testid="detail-watch-with">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Watch with</span>
+              {watchWithList.map(name => (
+                <span key={name} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                  {name}
+                </span>
+              ))}
             </div>
           )}
 

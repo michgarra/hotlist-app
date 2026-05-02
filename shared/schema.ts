@@ -70,6 +70,7 @@ export const recommendations = pgTable("recommendations", {
   cast: text("cast_list"),
   director: text("director"),
   censorRating: text("censor_rating"),
+  watchWith: text("watch_with"),
   watchTags: text("watch_tags"),
   watchReview: text("watch_review"),
   sortOrder: integer("sort_order"),

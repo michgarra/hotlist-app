@@ -30,6 +30,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<TmdbResult | null>(null);
   const [recommendedBy, setRecommendedBy] = useState("");
+  const [watchWith, setWatchWith] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [platform, setPlatform] = useState("");
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
@@ -84,6 +85,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   useEffect(() => {
     if (editItem && open) {
       setRecommendedBy(editItem.recommendedBy || "");
+      setWatchWith(editItem.watchWith ? editItem.watchWith.split(",").map(w => w.trim()).filter(Boolean) : []);
       setNotes(editItem.notes || "");
       setPlatform(editItem.platform || "");
       setSelectedItem({
@@ -145,6 +147,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
           if (rd && new Date(rd + "T00:00:00") > new Date()) return "Coming Soon";
           return "Want to Watch";
         })(),
+        watchWith: watchWith.length > 0 ? watchWith.join(", ") : null,
         notes: notes || null,
         tmdbId: selectedItem.id || null,
         posterUrl: details.posterUrl || selectedItem.posterUrl || null,
@@ -179,6 +182,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
     setDebouncedQuery("");
     setSelectedItem(null);
     setRecommendedBy("");
+    setWatchWith([]);
     setNotes("");
     setPlatform("");
     setShowAddFriend(false);
@@ -379,6 +383,34 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
                   </div>
                 )}
               </div>
+
+              {friends.length > 0 && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Watch with</label>
+                  <div className="flex flex-wrap gap-2" data-testid="watch-with-pills">
+                    {friends.map((f: any) => {
+                      const selected = watchWith.includes(f.name);
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setWatchWith(prev =>
+                            selected ? prev.filter(n => n !== f.name) : [...prev, f.name]
+                          )}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                            selected
+                              ? "bg-primary text-white border-primary"
+                              : "bg-background text-foreground border-border hover:border-primary/50"
+                          }`}
+                          data-testid={`watch-with-${f.id}`}
+                        >
+                          {f.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Comments</label>
