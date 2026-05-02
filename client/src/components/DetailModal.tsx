@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Pencil, X, RefreshCw } from "lucide-react";
+import { Star, Flame, Clock, Tv, Film, Pencil, X, RefreshCw, MonitorPlay } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
 
@@ -11,6 +11,38 @@ interface DetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (item: Recommendation) => void;
+}
+
+function formatRuntime(mins: number | null | undefined): string | null {
+  if (!mins) return null;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
+}
+
+function normalizePlatformDisplay(raw: string): string {
+  const first = raw.split(",")[0].trim();
+  const s = first.toLowerCase();
+  if (s.includes("netflix")) return "Netflix";
+  if (s.includes("disney")) return "Disney+";
+  if (s.includes("apple tv")) return "Apple TV+";
+  if (s.includes("amazon") || s === "prime" || s.includes("prime video")) return "Amazon Prime";
+  if (s.includes("stan")) return "Stan";
+  if (s.includes("binge")) return "Binge";
+  if (s.includes("hbo")) return "HBO";
+  if (s.includes("paramount")) return "Paramount+";
+  if (s.includes("britbox")) return "BritBox";
+  if (s.includes("foxtel")) return "Foxtel Now";
+  if (s.includes("sbs")) return "SBS On Demand";
+  if (s.includes("abc")) return "ABC iview";
+  if (s.includes("kayo")) return "Kayo";
+  if (s.includes("hayu")) return "Hayu";
+  if (s.includes("7plus") || s.includes("7 plus")) return "7Plus";
+  if (s.includes("10 play") || s.includes("10play")) return "10 Play";
+  if (s.includes("9now")) return "9Now";
+  if (s.includes("mubi")) return "MUBI";
+  if (s.includes("docplay")) return "DocPlay";
+  return first;
 }
 
 export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalProps) {
@@ -32,6 +64,9 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
   if (!item) return null;
 
   const castList = item.cast ? item.cast.split(",").map(c => c.trim()).filter(Boolean) : [];
+  const userTags = item.watchTags ? item.watchTags.split(",").map(t => t.trim()).filter(Boolean) : [];
+  const runtime = formatRuntime(item.runtime);
+  const platformDisplay = item.platform ? normalizePlatformDisplay(item.platform) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,16 +75,15 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
         data-testid="dialog-detail"
         hideCloseButton
       >
-        {/* Poster hero with visible close button */}
+        {/* Hero — poster with gradient overlay */}
         {item.posterUrl ? (
-          <div className="relative w-full h-56 overflow-hidden rounded-t-md flex-shrink-0">
+          <div className="relative w-full h-64 overflow-hidden rounded-t-lg flex-shrink-0">
             <img
               src={item.posterUrl.replace("/w342/", "/w780/")}
               alt={item.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-            {/* Clearly visible close button */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
             <button
               onClick={() => onOpenChange(false)}
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
@@ -57,22 +91,29 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="absolute bottom-4 left-4 right-4">
-              <h2 className="text-2xl font-bold text-white drop-shadow-lg" data-testid="text-detail-title">
-                {item.title}
-                {item.releaseDate && (
-                  <span className="text-xl font-normal text-white/70 ml-2" data-testid="text-detail-year">
-                    ({item.releaseDate.substring(0, 4)})
-                  </span>
-                )}
-              </h2>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <Badge variant="secondary" className="text-[10px] bg-white/20 text-white border-0" data-testid="badge-detail-type">
+            <div className="absolute bottom-4 left-4 right-12">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <Badge variant="secondary" className="text-[10px] bg-white/20 text-white border-0 backdrop-blur-sm" data-testid="badge-detail-type">
                   {item.type === "Movie" ? <Film className="w-3 h-3 mr-1" /> : <Tv className="w-3 h-3 mr-1" />}
                   {item.type}
                 </Badge>
-                {item.genre && <span className="text-xs text-white/80">{item.genre}</span>}
+                {item.censorRating && (
+                  <Badge variant="secondary" className="text-[10px] bg-white/20 text-white border-0 backdrop-blur-sm">
+                    {item.censorRating}
+                  </Badge>
+                )}
+                {item.genre && (
+                  <span className="text-[11px] text-white/70">{item.genre.split(",")[0].trim()}</span>
+                )}
               </div>
+              <h2 className="text-2xl font-bold text-white drop-shadow-lg leading-tight" data-testid="text-detail-title">
+                {item.title}
+                {item.releaseDate && (
+                  <span className="text-lg font-normal text-white/60 ml-2" data-testid="text-detail-year">
+                    {item.releaseDate.substring(0, 4)}
+                  </span>
+                )}
+              </h2>
             </div>
           </div>
         ) : (
@@ -93,81 +134,105 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
           </div>
         )}
 
-        <div className="p-5 space-y-4">
-          {/* User's own watch tags + review */}
-          {item.watchTags && (
+        <div className="p-5 space-y-5">
+
+          {/* Ratings row */}
+          <div className="flex items-center gap-5 flex-wrap">
+            {item.imdbRating && (
+              <div className="flex items-center gap-1.5" data-testid="text-detail-rating">
+                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="font-bold">{item.imdbRating}</span>
+                <span className="text-xs text-muted-foreground">IMDb</span>
+              </div>
+            )}
+            {item.rtRating != null && (
+              <div className="flex items-center gap-1.5" data-testid="text-detail-rt-rating">
+                <span className="text-base leading-none">🍅</span>
+                <span className="font-bold">{item.rtRating}%</span>
+                <span className="text-xs text-muted-foreground">RT</span>
+              </div>
+            )}
+            {runtime && (
+              <div className="flex items-center gap-1 text-muted-foreground" data-testid="text-detail-runtime">
+                <Clock className="w-3.5 h-3.5" />
+                <span className="text-sm">{runtime}</span>
+              </div>
+            )}
+            {item.seasons && (
+              <span className="text-sm text-muted-foreground" data-testid="text-detail-seasons">
+                {item.seasons} season{item.seasons > 1 ? "s" : ""}
+                {item.episodes ? `, ${item.episodes} eps` : ""}
+              </span>
+            )}
+          </div>
+
+          {/* Flame rating — half-flame support */}
+          {item.hotRating && (
+            <div className="flex items-center gap-2" data-testid="text-detail-hot-rating">
+              <span className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((i) => {
+                  const full = item.hotRating! >= i;
+                  const half = !full && item.hotRating! >= i - 0.5;
+                  return (
+                    <span key={i} className="relative inline-block w-5 h-5">
+                      <Flame className="w-5 h-5 text-muted-foreground/20" />
+                      {(full || half) && (
+                        <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "55%" : "100%" }}>
+                          <Flame className="w-5 h-5 text-primary fill-primary" />
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </span>
+              <span className="text-sm font-semibold text-primary">{item.hotRating} / 5</span>
+            </div>
+          )}
+
+          {/* User's own tags */}
+          {userTags.length > 0 && (
             <div className="flex flex-wrap gap-1.5" data-testid="detail-watch-tags">
-              {item.watchTags.split(", ").filter(Boolean).map(tag => (
-                <span key={tag} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+              {userTags.map(tag => (
+                <span key={tag} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                   {tag}
                 </span>
               ))}
             </div>
           )}
+
+          {/* User's review */}
           {item.watchReview && (
-            <div data-testid="detail-watch-review">
-              <p className="text-sm text-muted-foreground italic leading-relaxed">"{item.watchReview}"</p>
+            <div className="bg-muted/50 rounded-lg px-4 py-3 border-l-2 border-primary/40" data-testid="detail-watch-review">
+              <p className="text-sm text-foreground italic leading-relaxed">"{item.watchReview}"</p>
             </div>
           )}
 
-          {/* Ratings and runtime row */}
-          <div className="flex items-center gap-4 flex-wrap">
-            {item.imdbRating && (
-              <div className="flex items-center gap-1" data-testid="text-detail-rating">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="font-bold text-sm">{item.imdbRating}</span>
-                <span className="text-xs text-muted-foreground">/10</span>
+          {/* Where to watch */}
+          {platformDisplay && (
+            <div className="flex items-center gap-2.5" data-testid="text-detail-platform">
+              <MonitorPlay className="w-4 h-4 text-primary flex-shrink-0" />
+              <div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Watch on </span>
+                <span className="text-sm font-semibold">{platformDisplay}</span>
               </div>
-            )}
-            {item.hotRating && (
-              <div className="flex items-center gap-0.5" data-testid="text-detail-hot-rating">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Flame
-                    key={i}
-                    className={`w-4 h-4 ${i < item.hotRating! ? 'text-primary fill-primary' : 'text-muted-foreground/30'}`}
-                  />
-                ))}
-              </div>
-            )}
-            {item.runtime && (
-              <div className="flex items-center gap-1 text-muted-foreground" data-testid="text-detail-runtime">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="text-xs">{item.runtime} min</span>
-              </div>
-            )}
-            {item.seasons && (
-              <span className="text-xs text-muted-foreground" data-testid="text-detail-seasons">
-                {item.seasons} season{item.seasons > 1 ? 's' : ''}
-                {item.episodes ? `, ${item.episodes} ep${item.episodes > 1 ? 's' : ''}` : ''}
-              </span>
-            )}
-          </div>
-
-          {/* Platform */}
-          {item.platform && (
-            <div className="flex items-center gap-2" data-testid="text-detail-platform">
-              <Megaphone className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">Watch on <span className="font-medium">{item.platform}</span></span>
             </div>
           )}
 
           {/* Synopsis */}
           {item.overview && (
             <div data-testid="text-detail-overview">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Synopsis</h4>
-              <p className="text-sm leading-relaxed">{item.overview}</p>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Synopsis</h4>
+              <p className="text-sm leading-relaxed text-foreground/90">{item.overview}</p>
             </div>
           )}
 
           {/* Cast */}
           {castList.length > 0 && (
             <div data-testid="text-detail-cast">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
-                <Users className="w-3 h-3" /> Cast
-              </h4>
-              <div className="flex flex-wrap gap-1">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cast</h4>
+              <div className="flex flex-wrap gap-1.5">
                 {castList.map((name) => (
-                  <Badge key={name} variant="secondary" className="text-xs">{name}</Badge>
+                  <Badge key={name} variant="secondary" className="text-xs font-normal">{name}</Badge>
                 ))}
               </div>
             </div>
@@ -181,24 +246,25 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
-          {/* Recommended by + Notes — shown independently */}
+          {/* Recommended by + Notes */}
           {(item.recommendedBy || item.notes) && (
-            <div className="pt-2 border-t space-y-1" data-testid="text-detail-notes-section">
+            <div className="pt-3 border-t space-y-2" data-testid="text-detail-notes-section">
               {item.recommendedBy && (
-                <p className="text-xs text-muted-foreground" data-testid="text-detail-recommended">
-                  Recommended by <span className="font-medium text-primary">{item.recommendedBy}</span>
+                <p className="text-sm" data-testid="text-detail-recommended">
+                  Recommended by <span className="font-semibold text-primary">{item.recommendedBy}</span>
                 </p>
               )}
               {item.notes && (
                 <div data-testid="text-detail-notes">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Notes</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Notes</h4>
                   <p className="text-sm text-muted-foreground italic">"{item.notes}"</p>
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex gap-2">
+          {/* Action buttons */}
+          <div className="flex gap-2 pt-1">
             {item.tmdbId && (
               <Button
                 variant="outline"
