@@ -231,7 +231,6 @@ export default function Dashboard() {
       const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
       const haystack = [
         item.title,
-        item.genre,
         item.cast,
         item.director,
       ].filter(Boolean).join(" ").toLowerCase();
