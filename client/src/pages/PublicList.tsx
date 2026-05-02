@@ -5,7 +5,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Plus, Check, Film, Tv, Loader2, AlertCircle, LogIn, Clock } from "lucide-react";
+import { Flame, Plus, Check, Film, Tv, Loader2, AlertCircle, LogIn, Clock, Share2 } from "lucide-react";
 import type { Recommendation } from "@shared/schema";
 import flameLogo from "@/assets/flame-logo.png";
 
@@ -110,6 +110,21 @@ export default function PublicList() {
   const [, navigate] = useLocation();
   const { user, isLoading: authLoading } = useAuth();
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleShare = async (ownerName: string, count: number) => {
+    const url = window.location.href;
+    const text = `Check out ${ownerName}'s Hotlist 🔥 ${count} title${count !== 1 ? "s" : ""} to watch`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${ownerName}'s Hotlist 🔥`, text, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      }
+    } catch {}
+  };
 
   const { data, isLoading, error } = useQuery<PublicListData>({
     queryKey: [`/api/public-list/${token}`],
@@ -148,10 +163,20 @@ export default function PublicList() {
       {/* Header */}
       <header className="bg-primary text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
         <img src={flameLogo} alt="Hotlist" className="w-8 h-8 object-contain" />
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-[11px] font-medium text-white/70 uppercase tracking-wider leading-none mb-0.5">Hotlist</p>
           <h1 className="text-base font-bold leading-none">{ownerName}'s List</h1>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-white/90 hover:text-white hover:bg-white/20 gap-1.5 text-xs font-semibold px-3"
+          onClick={() => handleShare(ownerName, items.length)}
+          data-testid="button-share-public-list"
+        >
+          {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+          {shareCopied ? "Copied!" : "Share"}
+        </Button>
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-4">

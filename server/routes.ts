@@ -7,6 +7,8 @@ import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
 import { searchTmdb, getTmdbDetails, getTmdbSeasonCount } from "./tmdb";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import path from "path";
+import fs from "fs";
 
 function getUserId(req: any): string {
   return req.user?.claims?.sub;
@@ -310,9 +312,47 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const token = await storage.ensureListToken(userId);
-      res.json({ token, url: `${req.protocol}://${req.get("host")}/list/${token}` });
+      const items = await storage.getRecommendations(userId);
+      const itemCount = items.filter(i => i.status !== "Watched").length;
+      res.json({ token, url: `${req.protocol}://${req.get("host")}/list/${token}`, itemCount });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to get list token" });
+    }
+  });
+
+  // Dynamic OG meta injection for shared list pages — must be before vite/static catch-all
+  app.get("/list/:token", async (req, res, next) => {
+    try {
+      const owner = await storage.getProfileByListToken(req.params.token);
+      if (!owner) return next();
+      const items = await storage.getRecommendations(owner.userId);
+      const visible = items.filter(i => i.status !== "Watched");
+      const count = visible.length;
+      const host = `${req.protocol}://${req.get("host")}`;
+      const pageUrl = `${host}/list/${req.params.token}`;
+      const ogTitle = `${owner.name}'s Hotlist 🔥`;
+      const ogDesc = `${count} title${count !== 1 ? "s" : ""} to watch — see what ${owner.name} is recommending on Hotlist.`;
+
+      const htmlPath = process.env.NODE_ENV === "production"
+        ? path.resolve(import.meta.dirname, "public", "index.html")
+        : path.resolve(import.meta.dirname, "..", "client", "index.html");
+
+      let html = fs.readFileSync(htmlPath, "utf-8");
+      const ogTags = `
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Hotlist" />
+    <meta property="og:title" content="${ogTitle}" />
+    <meta property="og:description" content="${ogDesc}" />
+    <meta property="og:url" content="${pageUrl}" />
+    <meta property="og:image" content="${host}/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="${ogTitle}" />
+    <meta name="twitter:description" content="${ogDesc}" />
+    <meta name="twitter:image" content="${host}/icon-512.png" />`;
+      html = html.replace("</head>", `${ogTags}\n  </head>`);
+      res.set("Content-Type", "text/html").send(html);
+    } catch {
+      next();
     }
   });
 

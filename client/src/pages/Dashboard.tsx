@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2 } from "lucide-react";
+import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -100,6 +100,8 @@ export default function Dashboard() {
   const [hotRatingFilter, setHotRatingFilter] = useState("all");
   const [watchingFilter, setWatchingFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [ratingDisplay, setRatingDisplay] = useState<"imdb" | "rt" | "hot" | "friend">("imdb");
 
   // Seed ratingDisplay from profile once it's available
@@ -154,6 +156,24 @@ export default function Dashboard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   );
+
+  const handleShare = async () => {
+    try {
+      setShareLoading(true);
+      const res = await apiRequest("GET", "/api/me/list-token");
+      const data = await res.json();
+      const shareText = `Here's my Hotlist 🔥 ${data.itemCount} title${data.itemCount !== 1 ? "s" : ""} I want to watch`;
+      if (navigator.share) {
+        await navigator.share({ title: "My Hotlist 🔥", text: shareText, url: data.url });
+      } else {
+        await navigator.clipboard.writeText(data.url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      }
+    } catch {} finally {
+      setShareLoading(false);
+    }
+  };
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -282,6 +302,17 @@ export default function Dashboard() {
             <h1 className="text-lg font-bold tracking-tight">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`transition-all ${shareCopied ? "text-green-400" : "text-orange-400 hover:text-orange-300"}`}
+              onClick={handleShare}
+              disabled={shareLoading}
+              data-testid="button-share"
+              title="Share my list"
+            >
+              {shareLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            </Button>
             <Button variant="ghost" size="icon" className="text-white/80" onClick={() => setShowFriends(true)} data-testid="button-friends">
               <Users className="w-4 h-4" />
             </Button>
@@ -325,22 +356,14 @@ export default function Dashboard() {
                 <div className="p-2 space-y-0.5">
                   <button
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
-                    onClick={async () => {
-                      try {
-                        const res = await apiRequest("GET", "/api/me/list-token");
-                        const data = await res.json();
-                        if (navigator.share) {
-                          await navigator.share({ title: "My Hotlist", url: data.url });
-                        } else {
-                          await navigator.clipboard.writeText(data.url);
-                          alert("Link copied to clipboard!");
-                        }
-                      } catch {}
-                    }}
+                    onClick={handleShare}
+                    disabled={shareLoading}
                     data-testid="button-share-list"
                   >
-                    <Link2 className="w-4 h-4 text-muted-foreground" />
-                    Share my list
+                    {shareCopied
+                      ? <Check className="w-4 h-4 text-green-500" />
+                      : <Share2 className="w-4 h-4 text-muted-foreground" />}
+                    {shareCopied ? "Link copied!" : "Share my list"}
                   </button>
                   <button
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
