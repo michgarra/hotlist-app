@@ -54,6 +54,12 @@ export default function Dashboard() {
     staleTime: 60000,
   });
 
+  // Profile is already cached by App.tsx — read it here to seed ratingDisplay
+  const { data: profile } = useQuery<{ preferredRating?: string }>({
+    queryKey: ["/api/profile"],
+    staleTime: Infinity,
+  });
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -63,6 +69,12 @@ export default function Dashboard() {
   const [hotRatingFilter, setHotRatingFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [ratingDisplay, setRatingDisplay] = useState<"imdb" | "rt" | "hot" | "friend">("imdb");
+
+  // Seed ratingDisplay from profile once it's available
+  useEffect(() => {
+    if (profile?.preferredRating === "rt") setRatingDisplay("rt");
+    else if (profile?.preferredRating === "imdb") setRatingDisplay("imdb");
+  }, [profile?.preferredRating]);
   const [activeTab, setActiveTab] = useState<ActiveTab>("mylist");
 
   const [hotRatingItem, setHotRatingItem] = useState<Recommendation | null>(null);
