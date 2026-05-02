@@ -98,6 +98,17 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+
+      // Self-ping every 4 minutes in production to prevent idle termination
+      if (process.env.NODE_ENV === "production") {
+        setInterval(async () => {
+          try {
+            await fetch(`http://localhost:${port}/api/health`);
+          } catch {
+            // silently ignore — server may be mid-restart
+          }
+        }, 4 * 60 * 1000);
+      }
     },
   );
 })();

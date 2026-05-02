@@ -20,6 +20,11 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
 
+  // Lightweight health check — used by keepalive self-ping to prevent idle termination
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true });
+  });
+
   app.get("/api/shared/:id", async (req, res) => {
     const item = await storage.getRecommendation(Number(req.params.id));
     if (!item) return res.status(404).json({ message: "Not found" });
