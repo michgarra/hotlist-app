@@ -19,20 +19,31 @@ interface TitleCardProps {
   popularTags?: string[];
 }
 
-// Shorten long streaming platform names for compact display
-function shortenPlatform(name: string): string {
-  const map: Record<string, string> = {
-    "Amazon Prime Video": "Amazon",
-    "Amazon Prime": "Amazon",
-    "Apple TV+": "Apple TV+",
-    "Apple TV Plus": "Apple TV+",
-    "Google Play Movies & TV": "Google Play",
-    "Google Play Movies": "Google Play",
-    "Microsoft Store": "Microsoft",
-    "Foxtel Now": "Foxtel",
-    "Stan.": "Stan",
-  };
-  return map[name] ?? name;
+// Take first platform from a comma-separated list and normalise its name
+function firstPlatform(raw: string | null): string | null {
+  if (!raw) return null;
+  const first = raw.split(",")[0].trim();
+  const s = first.toLowerCase();
+  if (s.includes("netflix")) return "Netflix";
+  if (s.includes("disney")) return "Disney+";
+  if (s.includes("apple tv")) return "Apple TV+";
+  if (s.includes("amazon") || s === "prime" || s.includes("prime video")) return "Amazon Prime";
+  if (s.includes("stan")) return "Stan";
+  if (s.includes("binge")) return "Binge";
+  if (s.includes("hbo")) return "HBO";
+  if (s.includes("paramount")) return "Paramount+";
+  if (s.includes("britbox")) return "BritBox";
+  if (s.includes("foxtel")) return "Foxtel";
+  if (s.includes("sbs")) return "SBS On Demand";
+  if (s.includes("abc")) return "ABC iview";
+  if (s.includes("kayo")) return "Kayo";
+  if (s.includes("hayu")) return "Hayu";
+  if (s.includes("7plus") || s.includes("7 plus")) return "7Plus";
+  if (s.includes("10 play") || s.includes("10play")) return "10 Play";
+  if (s.includes("9now")) return "9Now";
+  if (s.includes("mubi")) return "MUBI";
+  if (s.includes("docplay")) return "DocPlay";
+  return first;
 }
 
 export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false, ratingDisplay = "imdb", popularTags = [] }: TitleCardProps) {
@@ -96,10 +107,6 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
   // First genre only for compact display
   const firstGenre = item.genre ? item.genre.split(",")[0].trim() : null;
 
-  // First two cast names for compact display
-  const topCast = item.cast
-    ? item.cast.split(",").map(c => c.trim()).slice(0, 2)
-    : [];
 
   // Format runtime as "1h 54m" or "54m"
   const formatRuntime = (mins: number | null | undefined): string | null => {
@@ -240,17 +247,11 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                   {item.censorRating && (
                     <span className="text-[10px] font-medium px-1 py-0 rounded border border-muted-foreground/30 text-muted-foreground/70 leading-tight" data-testid={`badge-censor-${item.id}`}>{item.censorRating}</span>
                   )}
-                  {item.platform && (
-                    <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{shortenPlatform(item.platform)}</span>
+                  {firstPlatform(item.platform) && (
+                    <span className="text-[11px] text-muted-foreground" data-testid={`text-platform-${item.id}`}>{firstPlatform(item.platform)}</span>
                   )}
                   {ratingDisplay !== "friend" && item.recommendedBy && (
                     <span className="text-[11px] text-primary font-medium" data-testid={`text-recommended-by-${item.id}`}>({item.recommendedBy})</span>
-                  )}
-                  {/* Cast folded into metadata row */}
-                  {topCast.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground/50 truncate" data-testid={`text-cast-${item.id}`}>
-                      {topCast.join(" · ")}
-                    </span>
                   )}
                 </div>
 
