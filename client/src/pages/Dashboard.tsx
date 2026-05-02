@@ -227,9 +227,18 @@ export default function Dashboard() {
   }, [serverItems]);
 
   const applyFilters = (list: Recommendation[]) => list.filter((item: Recommendation) => {
-    const matchesSearch = !search ||
-      item.title.toLowerCase().includes(search.toLowerCase()) ||
-      (item.genre && item.genre.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = !search || (() => {
+      const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
+      const haystack = [
+        item.title,
+        item.genre,
+        item.cast,
+        item.director,
+        item.recommendedBy,
+        item.platform,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return tokens.every(token => haystack.includes(token));
+    })();
     const matchesType = typeFilter === "all" || item.type === typeFilter;
     const matchesGenre = genreFilter === "all" || (item.genre && item.genre.includes(genreFilter));
     const matchesPlatform = platformFilter === "all" || getPlatforms(item.platform).includes(platformFilter);
@@ -384,7 +393,7 @@ export default function Dashboard() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search titles, genres..."
+                placeholder="Search titles, cast, directors, friends..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-9"
