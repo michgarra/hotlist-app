@@ -31,6 +31,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   const [selectedItem, setSelectedItem] = useState<TmdbResult | null>(null);
   const [recommendedBy, setRecommendedBy] = useState("");
   const [watchWith, setWatchWith] = useState<string[]>([]);
+  const [watchWithInput, setWatchWithInput] = useState("");
   const [notes, setNotes] = useState("");
   const [platform, setPlatform] = useState("");
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
@@ -85,7 +86,8 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   useEffect(() => {
     if (editItem && open) {
       setRecommendedBy(editItem.recommendedBy || "");
-      setWatchWith(editItem.watchWith ? editItem.watchWith.split(",").map(w => w.trim()).filter(Boolean) : []);
+      setWatchWith(editItem.watchWith ? editItem.watchWith.split(",").map((w: string) => w.trim()).filter(Boolean) : []);
+      setWatchWithInput("");
       setNotes(editItem.notes || "");
       setPlatform(editItem.platform || "");
       setSelectedItem({
@@ -183,6 +185,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
     setSelectedItem(null);
     setRecommendedBy("");
     setWatchWith([]);
+    setWatchWithInput("");
     setNotes("");
     setPlatform("");
     setShowAddFriend(false);
@@ -384,33 +387,56 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
                 )}
               </div>
 
-              {friends.length > 0 && (
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Watch with</label>
-                  <div className="flex flex-wrap gap-2" data-testid="watch-with-pills">
-                    {friends.map((f: any) => {
-                      const selected = watchWith.includes(f.name);
-                      return (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-2 block">Watch with</label>
+                {watchWith.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2" data-testid="watch-with-pills">
+                    {watchWith.map(name => (
+                      <span key={name} className="flex items-center gap-1 pl-3 pr-1.5 py-1 rounded-full text-sm font-medium bg-primary text-white">
+                        {name}
                         <button
-                          key={f.id}
                           type="button"
-                          onClick={() => setWatchWith(prev =>
-                            selected ? prev.filter(n => n !== f.name) : [...prev, f.name]
-                          )}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                            selected
-                              ? "bg-primary text-white border-primary"
-                              : "bg-background text-foreground border-border hover:border-primary/50"
-                          }`}
-                          data-testid={`watch-with-${f.id}`}
+                          onClick={() => setWatchWith(prev => prev.filter(n => n !== name))}
+                          className="w-4 h-4 rounded-full bg-white/30 hover:bg-white/50 flex items-center justify-center text-white leading-none"
+                          data-testid={`remove-watch-with-${name}`}
                         >
-                          {f.name}
+                          ×
                         </button>
-                      );
-                    })}
+                      </span>
+                    ))}
                   </div>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a name and press Enter"
+                    value={watchWithInput}
+                    onChange={(e) => setWatchWithInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.key === "Enter" || e.key === ",") && watchWithInput.trim()) {
+                        e.preventDefault();
+                        const name = watchWithInput.trim().replace(/,$/, "");
+                        if (name && !watchWith.includes(name)) setWatchWith(prev => [...prev, name]);
+                        setWatchWithInput("");
+                      }
+                    }}
+                    data-testid="input-watch-with"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const name = watchWithInput.trim();
+                      if (name && !watchWith.includes(name)) setWatchWith(prev => [...prev, name]);
+                      setWatchWithInput("");
+                    }}
+                    disabled={!watchWithInput.trim()}
+                    data-testid="button-add-watch-with"
+                  >
+                    Add
+                  </Button>
                 </div>
-              )}
+              </div>
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Comments</label>
