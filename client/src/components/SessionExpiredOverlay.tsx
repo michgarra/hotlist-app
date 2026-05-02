@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import flameLogo from "@/assets/flame-logo.png";
 
+// Public routes where the overlay must never appear
+const PUBLIC_PREFIXES = ["/list/", "/shared/"];
+
 export function SessionExpiredOverlay() {
   const [visible, setVisible] = useState(false);
+  const [location] = useLocation();
+
+  const isPublicRoute = PUBLIC_PREFIXES.some(p => location.startsWith(p));
 
   useEffect(() => {
-    const handler = () => setVisible(true);
+    const handler = () => {
+      if (PUBLIC_PREFIXES.some(p => window.location.pathname.startsWith(p))) return;
+      setVisible(true);
+    };
     window.addEventListener("sessionExpired", handler);
     return () => window.removeEventListener("sessionExpired", handler);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || isPublicRoute) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">

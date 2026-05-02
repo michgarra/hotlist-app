@@ -80,8 +80,9 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}/shared/${item.id}`;
-    const text = `Check out "${item.title}"${item.releaseDate ? ` (${item.releaseDate.substring(0, 4)})` : ''}${item.platform ? ` on ${item.platform}` : ''} - add it to your Hotlist!\n\n${shareUrl}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    // Keep URL out of text — navigator.share appends it separately, preventing double link preview in iMessage
+    const text = `Check out "${item.title}"${item.releaseDate ? ` (${item.releaseDate.substring(0, 4)})` : ''} — add it to your Hotlist!`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + "\n\n" + shareUrl)}`;
     if (navigator.share) {
       navigator.share({ title: item.title, text, url: shareUrl }).catch(() => {
         window.open(whatsappUrl, '_blank');
