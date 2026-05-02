@@ -60,6 +60,7 @@ export interface IStorage {
   deleteFriend(id: number): Promise<void>;
   findFriendByName(userId: string, name: string): Promise<Friend | undefined>;
   getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>>;
+  getCommunityData(tmdbId: number): Promise<{ tags: { tag: string; count: number }[]; reviews: { text: string; author: string }[] }>;
   getAdminStats(): Promise<AdminStats>;
 }
 
@@ -179,6 +180,38 @@ export class DatabaseStorage implements IStorage {
     const [item] = await db.select().from(friends)
       .where(and(eq(friends.userId, userId), ilike(friends.name, name)));
     return item;
+  }
+
+  async getCommunityData(tmdbId: number): Promise<{ tags: { tag: string; count: number }[]; reviews: { text: string; author: string }[] }> {
+    const rows = await db.execute(
+      sql`SELECT r.watch_tags, r.watch_review, p.name
+          FROM recommendations r
+          LEFT JOIN user_profiles p ON p.user_id = r.user_id
+          WHERE r.tmdb_id = ${tmdbId}
+            AND (r.watch_tags IS NOT NULL OR r.watch_review IS NOT NULL)`
+    );
+
+    const tagCounts: Record<string, number> = {};
+    const reviews: { text: string; author: string }[] = [];
+
+    for (const row of rows.rows as any[]) {
+      if (row.watch_tags) {
+        for (const tag of String(row.watch_tags).split(",").map((t: string) => t.trim()).filter(Boolean)) {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        }
+      }
+      if (row.watch_review) {
+        const firstName = row.name ? String(row.name).split(" ")[0] : "A Hotlister";
+        reviews.push({ text: String(row.watch_review), author: firstName });
+      }
+    }
+
+    const tags = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([tag, count]) => ({ tag, count }));
+
+    return { tags, reviews };
   }
 
   async getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>> {

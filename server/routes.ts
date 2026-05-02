@@ -356,6 +356,17 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/community/:tmdbId", isAuthenticated, async (req, res) => {
+    try {
+      const tmdbId = Number(req.params.tmdbId);
+      if (!tmdbId) return res.json({ tags: [], reviews: [] });
+      const data = await storage.getCommunityData(tmdbId);
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to load community data" });
+    }
+  });
+
   app.get("/api/public-list/:token", async (req, res) => {
     try {
       const owner = await storage.getProfileByListToken(String(req.params.token));

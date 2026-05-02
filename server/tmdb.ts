@@ -22,6 +22,8 @@ export interface TmdbDetails {
   title: string;
   type: "Movie" | "TV Show";
   posterUrl: string | null;
+  backdropUrl: string | null;
+  trailerKey: string | null;
   overview: string;
   releaseDate: string | null;
   runtime: number | null;
@@ -78,11 +80,14 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
     ? `${TMDB_BASE}/movie/${tmdbId}/release_dates?api_key=${apiKey}`
     : `${TMDB_BASE}/tv/${tmdbId}/content_ratings?api_key=${apiKey}`;
 
-  const [detailRes, creditsRes, providersRes, ratingsRes] = await Promise.all([
+  const videosUrl = `${TMDB_BASE}/${mediaType}/${tmdbId}/videos?api_key=${apiKey}&language=en-US`;
+
+  const [detailRes, creditsRes, providersRes, ratingsRes, videosRes] = await Promise.all([
     fetch(detailUrl),
     fetch(creditsUrl),
     fetch(providersUrl),
     fetch(ratingsUrl),
+    fetch(videosUrl),
   ]);
 
   if (!detailRes.ok) throw new Error("TMDB detail fetch failed");
@@ -91,6 +96,13 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const credits = creditsRes.ok ? await creditsRes.json() : { cast: [], crew: [] };
   const providers = providersRes.ok ? await providersRes.json() : { results: {} };
   const ratingsData = ratingsRes.ok ? await ratingsRes.json() : { results: [] };
+  const videosData = videosRes.ok ? await videosRes.json() : { results: [] };
+
+  const videoResults: any[] = videosData.results || [];
+  const trailer =
+    videoResults.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official !== false) ||
+    videoResults.find((v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
+  const trailerKey = trailer?.key || null;
 
   // Extract AU certification, fall back to US
   let censorRating: string | null = null;
@@ -165,6 +177,8 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
     title: mediaType === "movie" ? detail.title : detail.name,
     type: mediaType === "movie" ? "Movie" : "TV Show",
     posterUrl: detail.poster_path ? `${TMDB_IMG}/w500${detail.poster_path}` : null,
+    backdropUrl: detail.backdrop_path ? `${TMDB_IMG}/w1280${detail.backdrop_path}` : null,
+    trailerKey,
     overview: detail.overview || "",
     releaseDate: detail.release_date || detail.first_air_date || null,
     runtime: mediaType === "movie" ? detail.runtime || null : null,
