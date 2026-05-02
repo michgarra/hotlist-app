@@ -250,9 +250,7 @@ export default function Dashboard() {
     const matchesPlatform = platformFilter === "all" || getPlatforms(item.platform).includes(platformFilter);
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
     const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
-    const matchesWatching = watchingFilter === "all" ||
-      (watchingFilter === "mine" && item.status === "Watching") ||
-      (watchingFilter !== "mine" && item.recommendedBy === watchingFilter);
+    const matchesWatching = watchingFilter === "all" || item.status === "Watching";
     return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating && matchesWatching;
   });
 
@@ -474,11 +472,8 @@ export default function Dashboard() {
                     <SelectValue placeholder="Watching" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Everyone</SelectItem>
-                    <SelectItem value="mine">My Watching</SelectItem>
-                    {uniqueFriends.map(f => (
-                      <SelectItem key={f} value={f}>{f}</SelectItem>
-                    ))}
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="watching">My Watching</SelectItem>
                   </SelectContent>
                 </Select>
               )}
