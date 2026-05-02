@@ -98,6 +98,7 @@ export default function Dashboard() {
   const [platformFilter, setPlatformFilter] = useState("all");
   const [friendFilter, setFriendFilter] = useState("all");
   const [hotRatingFilter, setHotRatingFilter] = useState("all");
+  const [watchingFilter, setWatchingFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [ratingDisplay, setRatingDisplay] = useState<"imdb" | "rt" | "hot" | "friend">("imdb");
 
@@ -144,7 +145,8 @@ export default function Dashboard() {
     genreFilter !== "all" ||
     platformFilter !== "all" ||
     friendFilter !== "all" ||
-    hotRatingFilter !== "all"
+    hotRatingFilter !== "all" ||
+    watchingFilter !== "all"
   );
 
   // dnd-kit sensors — pointer with a small movement threshold, touch with delay to avoid conflict with scroll
@@ -248,11 +250,16 @@ export default function Dashboard() {
     const matchesPlatform = platformFilter === "all" || getPlatforms(item.platform).includes(platformFilter);
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
     const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
-    return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating;
+    const matchesWatching = watchingFilter === "all" || (
+      item.status === "Watching" && (
+        watchingFilter === "mine" || item.recommendedBy === watchingFilter
+      )
+    );
+    return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating && matchesWatching;
   });
 
-  const myListItems = useMemo(() => applyFilters(items.myList), [items.myList, search, typeFilter, genreFilter, platformFilter, friendFilter]);
-  const watchedItems = useMemo(() => applyFilters(items.watched), [items.watched, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter]);
+  const myListItems = useMemo(() => applyFilters(items.myList), [items.myList, search, typeFilter, genreFilter, platformFilter, friendFilter, watchingFilter]);
+  const watchedItems = useMemo(() => applyFilters(items.watched), [items.watched, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter, watchingFilter]);
   const displayItems = activeTab === "mylist" ? myListItems : watchedItems;
   const displayIds = displayItems.map(i => i.id);
 
@@ -459,6 +466,21 @@ export default function Dashboard() {
                   <SelectContent>
                     <SelectItem value="all">All Friends</SelectItem>
                     {uniqueFriends.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {activeTab === "mylist" && (
+                <Select value={watchingFilter} onValueChange={setWatchingFilter}>
+                  <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-watching">
+                    <SelectValue placeholder="Watching" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="mine">My Watching</SelectItem>
+                    {uniqueFriends.map(f => (
+                      <SelectItem key={f} value={f}>{f}'s Watching</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
