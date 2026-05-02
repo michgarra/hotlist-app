@@ -495,7 +495,7 @@ export default function Dashboard() {
                     <SelectValue placeholder="Watching" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="all">Watching</SelectItem>
                     <SelectItem value="watching">My Watching</SelectItem>
                   </SelectContent>
                 </Select>
