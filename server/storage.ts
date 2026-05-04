@@ -216,11 +216,12 @@ export class DatabaseStorage implements IStorage {
 
   async getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>> {
     if (!tmdbIds.length) return {};
+    const idsLiteral = `{${tmdbIds.map(Number).join(",")}}`;
     const result = await db.execute(
       sql`SELECT tmdb_id, tag, COUNT(*) as cnt
           FROM recommendations,
                unnest(string_to_array(watch_tags, ', ')) as tag
-          WHERE tmdb_id = ANY(${tmdbIds}::int[])
+          WHERE tmdb_id = ANY(${idsLiteral}::int[])
             AND watch_tags IS NOT NULL
           GROUP BY tmdb_id, tag
           ORDER BY tmdb_id, cnt DESC`

@@ -25,6 +25,20 @@ function AuthenticatedApp() {
     enabled: isBeta,
   });
 
+  // Prefetch recommendations in parallel with profile so Dashboard renders instantly
+  useQuery({
+    queryKey: ["/api/recommendations"],
+    enabled: isBeta,
+    staleTime: Infinity,
+  });
+
+  // Prefetch friends list in parallel too
+  useQuery({
+    queryKey: ["/api/friends"],
+    enabled: isBeta,
+    staleTime: Infinity,
+  });
+
   if (!isBeta) {
     return <BetaWaitlist email={user?.email} onLogout={logout} />;
   }
