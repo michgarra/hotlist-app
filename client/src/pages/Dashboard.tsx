@@ -99,6 +99,7 @@ export default function Dashboard() {
   const [friendFilter, setFriendFilter] = useState("all");
   const [hotRatingFilter, setHotRatingFilter] = useState("all");
   const [watchingFilter, setWatchingFilter] = useState("all");
+  const [watchWithFilter, setWatchWithFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -148,7 +149,8 @@ export default function Dashboard() {
     platformFilter !== "all" ||
     friendFilter !== "all" ||
     hotRatingFilter !== "all" ||
-    watchingFilter !== "all"
+    watchingFilter !== "all" ||
+    watchWithFilter !== "all"
   );
 
   // dnd-kit sensors — pointer with a small movement threshold, touch with delay to avoid conflict with scroll
@@ -255,6 +257,22 @@ export default function Dashboard() {
     return Array.from(seen.values()).sort();
   }, [serverItems]);
 
+  const uniqueWatchWith = useMemo(() => {
+    const seen = new Map<string, string>();
+    serverItems.forEach((i: Recommendation) => {
+      if (i.watchWith) {
+        i.watchWith.split(",").forEach((name) => {
+          const trimmed = name.trim();
+          if (trimmed) {
+            const key = trimmed.toLowerCase();
+            if (!seen.has(key)) seen.set(key, trimmed);
+          }
+        });
+      }
+    });
+    return Array.from(seen.values()).sort();
+  }, [serverItems]);
+
   const applyFilters = (list: Recommendation[]) => list.filter((item: Recommendation) => {
     const matchesSearch = !search || (() => {
       const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
@@ -271,11 +289,12 @@ export default function Dashboard() {
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
     const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
     const matchesWatching = watchingFilter === "all" || item.status === "Watching";
-    return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating && matchesWatching;
+    const matchesWatchWith = watchWithFilter === "all" || (item.watchWith && item.watchWith.split(",").map(n => n.trim().toLowerCase()).includes(watchWithFilter.toLowerCase()));
+    return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating && matchesWatching && matchesWatchWith;
   });
 
-  const myListItems = useMemo(() => applyFilters(items.myList), [items.myList, search, typeFilter, genreFilter, platformFilter, friendFilter, watchingFilter]);
-  const watchedItems = useMemo(() => applyFilters(items.watched), [items.watched, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter, watchingFilter]);
+  const myListItems = useMemo(() => applyFilters(items.myList), [items.myList, search, typeFilter, genreFilter, platformFilter, friendFilter, watchingFilter, watchWithFilter]);
+  const watchedItems = useMemo(() => applyFilters(items.watched), [items.watched, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter, watchingFilter, watchWithFilter]);
   const displayItems = activeTab === "mylist" ? myListItems : watchedItems;
   const displayIds = displayItems.map(i => i.id);
 
@@ -490,13 +509,30 @@ export default function Dashboard() {
               )}
 
               {activeTab === "mylist" && (
-                <Select value={watchingFilter} onValueChange={setWatchingFilter}>
+                <Select
+                  value={watchWithFilter !== "all" ? watchWithFilter : watchingFilter}
+                  onValueChange={(val) => {
+                    if (val === "all" || val === "watching") {
+                      setWatchingFilter(val);
+                      setWatchWithFilter("all");
+                    } else {
+                      setWatchWithFilter(val);
+                      setWatchingFilter("all");
+                    }
+                  }}
+                >
                   <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-watching">
                     <SelectValue placeholder="Watching" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Watching</SelectItem>
                     <SelectItem value="watching">My Watching</SelectItem>
+                    {uniqueWatchWith.length > 0 && (
+                      <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wide">Watch With</div>
+                    )}
+                    {uniqueWatchWith.map(name => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
