@@ -13,12 +13,7 @@ function checkBetaAccess(email: string | undefined | null): boolean {
 }
 
 export function registerAuthRoutes(app: Express): void {
-  app.get("/api/auth/user", (req, res, next) => {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.set("Pragma", "no-cache");
-    res.set("Expires", "0");
-    next();
-  }, isAuthenticated, async (req: any, res) => {
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);

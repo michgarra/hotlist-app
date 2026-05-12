@@ -34,6 +34,14 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+// Prevent browsers and proxies from caching any API response.
+// Without this, iOS WKWebView (home screen PWA) can cache error responses
+// (e.g. 401s) and replay them even after a successful login.
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
