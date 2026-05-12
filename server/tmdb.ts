@@ -115,13 +115,20 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
       rating: Math.round((r.vote_average || 0) * 10) / 10,
     }));
 
-  // Merge: title results first, then person credits (deduped by id)
-  const seenIds = new Set(titleResults.map(r => r.id));
-  const merged = [...titleResults];
-  for (const r of personCredits) {
-    if (!seenIds.has(r.id)) { seenIds.add(r.id); merged.push(r); }
+  // If person credits found, lead with them — title results for a person name are
+  // usually tribute docs / "Meryl Streep: ..." films, not what the user wants.
+  // If no person results, fall back to title results as normal.
+  if (personCredits.length > 0) {
+    const seenIds = new Set(personCredits.map(r => r.id));
+    const merged = [...personCredits];
+    for (const r of titleResults) {
+      if (!seenIds.has(r.id)) { seenIds.add(r.id); merged.push(r); }
+    }
+    return merged.slice(0, 15);
   }
-  return merged.slice(0, 15);
+
+  // No person match — return title results only
+  return titleResults.slice(0, 15);
 }
 
 export async function getTmdbSeasonCount(tmdbId: number): Promise<{ seasons: number; episodes: number }> {
