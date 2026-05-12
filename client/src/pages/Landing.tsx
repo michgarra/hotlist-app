@@ -5,6 +5,7 @@ import flameLogo from "@/assets/flame-logo.png";
 
 export default function Landing() {
   const authFailed = new URLSearchParams(window.location.search).get("auth_failed") === "1";
+  const loginUrl = `/api/login?next=${encodeURIComponent(window.location.pathname)}`;
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-black text-white">
@@ -17,7 +18,7 @@ export default function Landing() {
             variant="outline"
             size="sm"
             className="border-white/30 text-white"
-            onClick={() => window.location.href = "/api/login"}
+            onClick={() => window.location.href = loginUrl}
             data-testid="button-login-header"
           >
             Log in
@@ -49,7 +50,7 @@ export default function Landing() {
           <Button
             size="lg"
             className="w-full max-w-xs text-base"
-            onClick={() => window.location.href = "/api/login"}
+            onClick={() => window.location.href = loginUrl}
             data-testid="button-get-started"
           >
             <Flame className="w-5 h-5 mr-2" />

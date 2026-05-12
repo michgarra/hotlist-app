@@ -106,6 +106,9 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
+    // Store the intended destination so successReturnToOrRedirect picks it up
+    const returnTo = typeof req.query.next === "string" && req.query.next.startsWith("/") ? req.query.next : "/";
+    (req.session as any).returnTo = returnTo;
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
