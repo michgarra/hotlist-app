@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { runOmdbEnrichment } from "./omdb-enrichment";
 
 const app = express();
 const httpServer = createServer(app);
@@ -98,6 +99,9 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+
+      // Enrich existing items with real IMDb + RT ratings (runs in background, no blocking)
+      setTimeout(() => runOmdbEnrichment(), 5000);
 
       // Self-ping every 4 minutes in production to prevent idle termination
       if (process.env.NODE_ENV === "production") {
