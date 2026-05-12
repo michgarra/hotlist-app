@@ -41,7 +41,7 @@ async function logout(): Promise<void> {
 
 export function useAuth() {
   const queryClient = useQueryClient();
-  const { data: user, isLoading } = useQuery<AuthUser | null>({
+  const { data: user, isLoading, isFetching } = useQuery<AuthUser | null>({
     queryKey: ["/api/auth/user"],
     queryFn: fetchUser,
     initialData: readCachedUser,
@@ -58,7 +58,7 @@ export function useAuth() {
 
   return {
     user,
-    isLoading,
+    isLoading: isLoading || (!user && isFetching),
     isAuthenticated: !!user,
     isBeta: user?.isBeta ?? true,
     logout: logoutMutation.mutate,
