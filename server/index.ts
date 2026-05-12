@@ -100,8 +100,8 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
 
-      // Enrich existing items with real IMDb + RT ratings (runs in background, no blocking)
-      setTimeout(() => runOmdbEnrichment(), 5000);
+      // Enrich existing items with real IMDb + RT ratings — delayed 2 min to let server settle
+      setTimeout(() => runOmdbEnrichment(), 2 * 60 * 1000);
 
       // Self-ping every 4 minutes in production to prevent idle termination
       if (process.env.NODE_ENV === "production") {

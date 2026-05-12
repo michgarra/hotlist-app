@@ -51,11 +51,9 @@ export async function runOmdbEnrichment(): Promise<void> {
     if (items.length === 0) return;
     log(`OMDb enrichment: updating ${items.length} items...`, "omdb");
 
-    const BATCH = 3;
-    for (let i = 0; i < items.length; i += BATCH) {
-      const batch = items.slice(i, i + BATCH);
-      await Promise.all(batch.map((row: any) => enrichItem(row.id, row.tmdb_id, row.type)));
-      if (i + BATCH < items.length) await new Promise(r => setTimeout(r, 400));
+    for (const row of items) {
+      await enrichItem(row.id, row.tmdb_id, row.type);
+      await new Promise(r => setTimeout(r, 1500));
     }
     log(`OMDb enrichment: done`, "omdb");
   } catch (err: any) {
