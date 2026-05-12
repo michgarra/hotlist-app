@@ -28,6 +28,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
+    name: "hl_sid",
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
@@ -35,6 +36,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
+      sameSite: "lax",
       maxAge: sessionTtl,
     },
   });
@@ -114,7 +116,7 @@ export async function setupAuth(app: Express) {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+      failureRedirect: "/?auth_failed=1",
     })(req, res, next);
   });
 
@@ -133,7 +135,8 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user?.expires_at) {
+    console.log(`[auth] isAuthenticated=false sid=${(req as any).sessionID?.slice(0,8)} isAuth=${req.isAuthenticated()} hasUser=${!!user} hasExpires=${!!user?.expires_at}`);
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -142,6 +145,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return next();
   }
 
+  console.log(`[auth] token expired for ${user?.claims?.email}, attempting refresh`);
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
     res.status(401).json({ message: "Unauthorized" });
@@ -154,6 +158,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     updateUserSession(user, tokenResponse);
     return next();
   } catch (error) {
+    console.log(`[auth] refresh failed:`, error);
     res.status(401).json({ message: "Unauthorized" });
     return;
   }

@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Flame, Users, Share2, Star, Tv, Film } from "lucide-react";
+import { Flame, Users, Share2, Star, AlertCircle } from "lucide-react";
 import flameLogo from "@/assets/flame-logo.png";
 
 export default function Landing() {
+  const authFailed = new URLSearchParams(window.location.search).get("auth_failed") === "1";
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-black text-white">
@@ -25,6 +26,12 @@ export default function Landing() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        {authFailed && (
+          <div className="mb-6 max-w-md w-full flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>Sign-in didn't complete. Please try again — tap "Get Started" below.</span>
+          </div>
+        )}
         <div className="max-w-md text-center space-y-6">
           <div className="flex justify-center">
             <img src={flameLogo} alt="Hotlist" className="w-20 h-20 object-contain" />
