@@ -85,12 +85,17 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
         const credRes = await fetch(`${TMDB_BASE}/person/${p.id}/combined_credits?api_key=${apiKey}&language=en-US`);
         if (!credRes.ok) return p.known_for || [];
         const credData = await credRes.json();
-        const credits = [...(credData.cast || []), ...(credData.crew || [])]
-          .filter((c: any) => (c.media_type === "movie" || c.media_type === "tv") && c.poster_path && c.vote_count > 50)
+        // Cast: only top-billed roles (order < 15 means they're a lead/major cast member)
+        const castCredits = (credData.cast || [])
+          .filter((c: any) => (c.media_type === "movie" || c.media_type === "tv") && c.poster_path && c.vote_count > 150 && c.order != null && c.order < 15);
+        // Crew: only directing credits (avoids showing random docs where they were a producer/exec)
+        const crewCredits = (credData.crew || [])
+          .filter((c: any) => (c.media_type === "movie" || c.media_type === "tv") && c.poster_path && c.vote_count > 150 && c.job === "Director");
+        const credits = [...castCredits, ...crewCredits]
           .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
         // Dedupe by id within this person's credits
         const seen = new Set<number>();
-        return credits.filter((c: any) => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 20);
+        return credits.filter((c: any) => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 15);
       } catch {
         return p.known_for || [];
       }
