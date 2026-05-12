@@ -45,7 +45,7 @@ export async function runOmdbEnrichment(): Promise<void> {
   if (!process.env.OMDB_API_KEY) return;
   try {
     const result = await pool.query(
-      "SELECT id, tmdb_id, type FROM recommendations WHERE tmdb_id IS NOT NULL AND rt_rating IS NULL ORDER BY id DESC"
+      "SELECT id, tmdb_id, type FROM recommendations WHERE tmdb_id IS NOT NULL AND imdb_rating IS NULL AND rt_rating IS NULL ORDER BY id DESC"
     );
     const items = result.rows;
     if (items.length === 0) return;

@@ -408,7 +408,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
                 data-testid="button-refresh-metadata"
               >
                 <RefreshCw className={`w-3.5 h-3.5 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                {refreshed ? "Updated!" : refreshing ? "Refreshing…" : "Refresh Ratings"}
+                {refreshed ? "Updated!" : refreshing ? "Refreshing…" : "Refresh Metadata"}
               </Button>
             )}
             {onEdit && (

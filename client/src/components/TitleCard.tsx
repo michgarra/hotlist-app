@@ -220,10 +220,10 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
                       <span className="font-semibold">{item.imdbRating}</span>
                     </span>
                   )}
-                  {ratingDisplay === "rt" && (
+                  {ratingDisplay === "rt" && item.rtRating != null && (
                     <span className="flex items-center gap-0.5 text-[11px]" data-testid={`text-rating-${item.id}`}>
                       <span>🍅</span>
-                      <span className="font-semibold">{item.rtRating != null ? `${item.rtRating}%` : "—"}</span>
+                      <span className="font-semibold">{item.rtRating}%</span>
                     </span>
                   )}
                   {ratingDisplay === "hot" && item.hotRating != null && (
