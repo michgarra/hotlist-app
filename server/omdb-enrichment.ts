@@ -14,17 +14,19 @@ async function getImdbId(tmdbId: number, mediaType: "movie" | "tv"): Promise<str
   } catch { return null; }
 }
 
-async function fetchOmdbRatings(imdbId: string): Promise<{ imdbRating: number | null; rtRating: number | null }> {
-  const apiKey = process.env.OMDB_API_KEY;
+async function fetchMdbListRatings(imdbId: string): Promise<{ imdbRating: number | null; rtRating: number | null }> {
+  const apiKey = process.env.MDBLIST_API_KEY;
   if (!apiKey) return { imdbRating: null, rtRating: null };
   try {
-    const res = await fetch(`http://www.omdbapi.com/?i=${imdbId}&apikey=${apiKey}`);
+    const res = await fetch(`https://mdblist.com/api/?apikey=${apiKey}&i=${imdbId}`);
     if (!res.ok) return { imdbRating: null, rtRating: null };
     const data = await res.json();
-    if (data.Response === "False") return { imdbRating: null, rtRating: null };
-    const imdbRating = data.imdbRating && data.imdbRating !== "N/A" ? parseFloat(data.imdbRating) : null;
-    const rtEntry = (data.Ratings || []).find((r: any) => r.Source === "Rotten Tomatoes");
-    const rtRating = rtEntry?.Value ? parseInt(rtEntry.Value.replace("%", ""), 10) || null : null;
+    if (!data.ratings) return { imdbRating: null, rtRating: null };
+    const ratings: any[] = data.ratings;
+    const imdbEntry = ratings.find((r: any) => r.source === "imdb");
+    const rtEntry = ratings.find((r: any) => r.source === "tomatoes");
+    const imdbRating = imdbEntry?.value != null ? Math.round(imdbEntry.value * 10) / 10 : null;
+    const rtRating = rtEntry?.value != null ? Math.round(rtEntry.value) : null;
     return { imdbRating, rtRating };
   } catch { return { imdbRating: null, rtRating: null }; }
 }
@@ -33,7 +35,7 @@ async function enrichItem(id: number, tmdbId: number, mediaType: string): Promis
   const type = mediaType === "Movie" ? "movie" : "tv";
   const imdbId = await getImdbId(tmdbId, type);
   if (!imdbId) return;
-  const { imdbRating, rtRating } = await fetchOmdbRatings(imdbId);
+  const { imdbRating, rtRating } = await fetchMdbListRatings(imdbId);
   if (imdbRating === null && rtRating === null) return;
   await pool.query(
     "UPDATE recommendations SET imdb_rating = COALESCE($1, imdb_rating), rt_rating = COALESCE($2, rt_rating) WHERE id = $3",
@@ -42,21 +44,22 @@ async function enrichItem(id: number, tmdbId: number, mediaType: string): Promis
 }
 
 export async function runOmdbEnrichment(): Promise<void> {
-  if (!process.env.OMDB_API_KEY) return;
+  if (!process.env.MDBLIST_API_KEY) return;
   try {
+    // Re-process anything missing RT rating — MDBList has much better RT coverage than OMDb
     const result = await pool.query(
-      "SELECT id, tmdb_id, type FROM recommendations WHERE tmdb_id IS NOT NULL AND imdb_rating IS NULL AND rt_rating IS NULL ORDER BY id DESC"
+      "SELECT id, tmdb_id, type FROM recommendations WHERE tmdb_id IS NOT NULL AND rt_rating IS NULL ORDER BY id DESC"
     );
     const items = result.rows;
     if (items.length === 0) return;
-    log(`OMDb enrichment: updating ${items.length} items...`, "omdb");
+    log(`MDBList enrichment: updating ${items.length} items...`, "mdblist");
 
     for (const row of items) {
       await enrichItem(row.id, row.tmdb_id, row.type);
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 1200));
     }
-    log(`OMDb enrichment: done`, "omdb");
+    log(`MDBList enrichment: done`, "mdblist");
   } catch (err: any) {
-    log(`OMDb enrichment error: ${err.message}`, "omdb");
+    log(`MDBList enrichment error: ${err.message}`, "mdblist");
   }
 }

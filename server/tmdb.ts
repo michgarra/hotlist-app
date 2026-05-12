@@ -38,18 +38,19 @@ export interface TmdbDetails {
   censorRating: string | null;
 }
 
-async function getOmdbRatings(imdbId: string): Promise<{ imdbRating: number | null; rtRating: number | null }> {
-  const apiKey = process.env.OMDB_API_KEY;
+async function getMdbListRatings(imdbId: string): Promise<{ imdbRating: number | null; rtRating: number | null }> {
+  const apiKey = process.env.MDBLIST_API_KEY;
   if (!apiKey || !imdbId) return { imdbRating: null, rtRating: null };
   try {
-    const res = await fetch(`http://www.omdbapi.com/?i=${imdbId}&apikey=${apiKey}`);
+    const res = await fetch(`https://mdblist.com/api/?apikey=${apiKey}&i=${imdbId}`);
     if (!res.ok) return { imdbRating: null, rtRating: null };
     const data = await res.json();
-    if (data.Response === "False") return { imdbRating: null, rtRating: null };
-    const imdbRating = data.imdbRating && data.imdbRating !== "N/A" ? parseFloat(data.imdbRating) : null;
-    const rtEntry = (data.Ratings || []).find((r: any) => r.Source === "Rotten Tomatoes");
-    const rtRaw = rtEntry?.Value || null; // e.g. "89%"
-    const rtRating = rtRaw ? parseInt(rtRaw.replace("%", ""), 10) || null : null;
+    if (!data.ratings) return { imdbRating: null, rtRating: null };
+    const ratings: any[] = data.ratings;
+    const imdbEntry = ratings.find((r) => r.source === "imdb");
+    const rtEntry = ratings.find((r) => r.source === "tomatoes");
+    const imdbRating = imdbEntry?.value != null ? Math.round(imdbEntry.value * 10) / 10 : null;
+    const rtRating = rtEntry?.value != null ? Math.round(rtEntry.value) : null;
     return { imdbRating, rtRating };
   } catch {
     return { imdbRating: null, rtRating: null };
@@ -160,9 +161,9 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const videosData = videosRes.ok ? await videosRes.json() : { results: [] };
   const externalIds = externalIdsRes.ok ? await externalIdsRes.json() : {};
 
-  // Fetch real IMDb + RT ratings from OMDb (imdb_id is in detail for movies, external_ids for TV)
+  // Fetch real IMDb + RT ratings from MDBList (imdb_id is in detail for movies, external_ids for TV)
   const imdbId: string | null = detail.imdb_id || externalIds.imdb_id || null;
-  const omdbRatings = await getOmdbRatings(imdbId || "");
+  const mdbRatings = await getMdbListRatings(imdbId || "");
 
   const videoResults: any[] = videosData.results || [];
   const trailer =
@@ -253,8 +254,8 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
     genres: (detail.genres || []).map((g: any) => g.name),
     cast,
     director,
-    imdbRating: omdbRatings.imdbRating ?? (detail.vote_average ? Math.round(detail.vote_average * 10) / 10 : null),
-    rtRating: omdbRatings.rtRating,
+    imdbRating: mdbRatings.imdbRating ?? (detail.vote_average ? Math.round(detail.vote_average * 10) / 10 : null),
+    rtRating: mdbRatings.rtRating,
     platform,
     censorRating,
   };
