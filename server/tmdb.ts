@@ -33,8 +33,27 @@ export interface TmdbDetails {
   cast: string[];
   director: string | null;
   imdbRating: number | null;
+  rtRating: number | null;
   platform: string | null;
   censorRating: string | null;
+}
+
+async function getOmdbRatings(imdbId: string): Promise<{ imdbRating: number | null; rtRating: number | null }> {
+  const apiKey = process.env.OMDB_API_KEY;
+  if (!apiKey || !imdbId) return { imdbRating: null, rtRating: null };
+  try {
+    const res = await fetch(`http://www.omdbapi.com/?i=${imdbId}&apikey=${apiKey}`);
+    if (!res.ok) return { imdbRating: null, rtRating: null };
+    const data = await res.json();
+    if (data.Response === "False") return { imdbRating: null, rtRating: null };
+    const imdbRating = data.imdbRating && data.imdbRating !== "N/A" ? parseFloat(data.imdbRating) : null;
+    const rtEntry = (data.Ratings || []).find((r: any) => r.Source === "Rotten Tomatoes");
+    const rtRaw = rtEntry?.Value || null; // e.g. "89%"
+    const rtRating = rtRaw ? parseInt(rtRaw.replace("%", ""), 10) || null : null;
+    return { imdbRating, rtRating };
+  } catch {
+    return { imdbRating: null, rtRating: null };
+  }
 }
 
 export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
@@ -102,15 +121,16 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const ratingsUrl = mediaType === "movie"
     ? `${TMDB_BASE}/movie/${tmdbId}/release_dates?api_key=${apiKey}`
     : `${TMDB_BASE}/tv/${tmdbId}/content_ratings?api_key=${apiKey}`;
-
   const videosUrl = `${TMDB_BASE}/${mediaType}/${tmdbId}/videos?api_key=${apiKey}&language=en-US`;
+  const externalIdsUrl = `${TMDB_BASE}/${mediaType}/${tmdbId}/external_ids?api_key=${apiKey}`;
 
-  const [detailRes, creditsRes, providersRes, ratingsRes, videosRes] = await Promise.all([
+  const [detailRes, creditsRes, providersRes, ratingsRes, videosRes, externalIdsRes] = await Promise.all([
     fetch(detailUrl),
     fetch(creditsUrl),
     fetch(providersUrl),
     fetch(ratingsUrl),
     fetch(videosUrl),
+    fetch(externalIdsUrl),
   ]);
 
   if (!detailRes.ok) throw new Error("TMDB detail fetch failed");
@@ -120,6 +140,11 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
   const providers = providersRes.ok ? await providersRes.json() : { results: {} };
   const ratingsData = ratingsRes.ok ? await ratingsRes.json() : { results: [] };
   const videosData = videosRes.ok ? await videosRes.json() : { results: [] };
+  const externalIds = externalIdsRes.ok ? await externalIdsRes.json() : {};
+
+  // Fetch real IMDb + RT ratings from OMDb (imdb_id is in detail for movies, external_ids for TV)
+  const imdbId: string | null = detail.imdb_id || externalIds.imdb_id || null;
+  const omdbRatings = await getOmdbRatings(imdbId || "");
 
   const videoResults: any[] = videosData.results || [];
   const trailer =
@@ -210,7 +235,8 @@ export async function getTmdbDetails(tmdbId: number, mediaType: "movie" | "tv"):
     genres: (detail.genres || []).map((g: any) => g.name),
     cast,
     director,
-    imdbRating: detail.vote_average ? Math.round(detail.vote_average * 10) / 10 : null,
+    imdbRating: omdbRatings.imdbRating ?? (detail.vote_average ? Math.round(detail.vote_average * 10) / 10 : null),
+    rtRating: omdbRatings.rtRating,
     platform,
     censorRating,
   };

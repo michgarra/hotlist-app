@@ -45,3 +45,4 @@ integrations = ["javascript_log_in_with_replit:2.0.0"]
 
 [userenv.shared]
 ADMIN_USER_IDS = "54428651"
+OMDB_API_KEY = "b2185b77"

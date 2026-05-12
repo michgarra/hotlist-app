@@ -133,6 +133,17 @@ export async function registerRoutes(
 
       const item = await storage.createRecommendation({ ...parsed, userId });
       res.status(201).json(item);
+
+      // Background: enrich with real IMDb + RT ratings from OMDb (doesn't block response)
+      if (item.tmdbId) {
+        const mediaType = item.type === "Movie" ? "movie" : "tv";
+        getTmdbDetails(item.tmdbId, mediaType)
+          .then(details => storage.updateRecommendation(item.id, {
+            imdbRating: details.imdbRating,
+            rtRating: details.rtRating,
+          }))
+          .catch(() => {});
+      }
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join(".") });
@@ -432,6 +443,7 @@ export async function registerRoutes(
 
       const updated = await storage.updateRecommendation(item.id, {
         imdbRating: details.imdbRating,
+        rtRating: details.rtRating,
         overview: details.overview || item.overview,
         cast: details.cast.join(", ") || item.cast,
         director: details.director || item.director,
