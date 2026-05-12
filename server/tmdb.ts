@@ -44,9 +44,9 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
   if (!res.ok) throw new Error("TMDB search failed");
   const data = await res.json();
 
-  return data.results
+  const titleResults: TmdbSearchResult[] = data.results
     .filter((r: any) => r.media_type === "movie" || r.media_type === "tv")
-    .slice(0, 10)
+    .slice(0, 8)
     .map((r: any) => ({
       id: r.id,
       title: r.media_type === "movie" ? r.title : r.name,
@@ -56,6 +56,29 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
       overview: r.overview || "",
       rating: Math.round((r.vote_average || 0) * 10) / 10,
     }));
+
+  // Extract known_for titles from any person results (actor/director search)
+  const personResults = data.results.filter((r: any) => r.media_type === "person");
+  const knownForResults: TmdbSearchResult[] = personResults
+    .flatMap((p: any) => (p.known_for || []))
+    .filter((r: any) => (r.media_type === "movie" || r.media_type === "tv") && r.poster_path)
+    .map((r: any) => ({
+      id: r.id,
+      title: r.media_type === "movie" ? r.title : r.name,
+      type: r.media_type === "movie" ? "Movie" : "TV Show",
+      posterUrl: r.poster_path ? `${TMDB_IMG}/w342${r.poster_path}` : null,
+      releaseDate: r.release_date || r.first_air_date || null,
+      overview: r.overview || "",
+      rating: Math.round((r.vote_average || 0) * 10) / 10,
+    }));
+
+  // Merge: title results first, then known_for (deduped by id)
+  const seenIds = new Set(titleResults.map(r => r.id));
+  const merged = [...titleResults];
+  for (const r of knownForResults) {
+    if (!seenIds.has(r.id)) { seenIds.add(r.id); merged.push(r); }
+  }
+  return merged.slice(0, 10);
 }
 
 export async function getTmdbSeasonCount(tmdbId: number): Promise<{ seasons: number; episodes: number }> {
