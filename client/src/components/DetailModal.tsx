@@ -64,7 +64,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
   const { data: extras } = useQuery<TmdbExtras>({
     queryKey: ["/api/tmdb", item?.tmdbId, item?.type, "extras"],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/tmdb/${item!.tmdbId}/details?type=${encodeURIComponent(item!.type)}`);
+      const res = await apiRequest("GET", `/api/tmdb/details/${item!.tmdbId}?type=${encodeURIComponent(item!.type)}`);
       const d = await res.json();
       return { backdropUrl: d.backdropUrl ?? null, trailerKey: d.trailerKey ?? null };
     },

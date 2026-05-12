@@ -226,7 +226,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
-                placeholder="Search movies and TV shows..."
+                placeholder="Search movies, TV shows, actors or directors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
