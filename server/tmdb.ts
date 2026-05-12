@@ -76,14 +76,32 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
       rating: Math.round((r.vote_average || 0) * 10) / 10,
     }));
 
-  // Extract known_for titles from any person results (actor/director search)
+  // For person results, fetch full credits (known_for only returns 3 items)
   const personResults = data.results.filter((r: any) => r.media_type === "person");
-  const knownForResults: TmdbSearchResult[] = personResults
-    .flatMap((p: any) => (p.known_for || []))
+  const creditArrays = await Promise.all(
+    personResults.slice(0, 2).map(async (p: any) => {
+      try {
+        const credRes = await fetch(`${TMDB_BASE}/person/${p.id}/combined_credits?api_key=${apiKey}&language=en-US`);
+        if (!credRes.ok) return p.known_for || [];
+        const credData = await credRes.json();
+        const credits = [...(credData.cast || []), ...(credData.crew || [])]
+          .filter((c: any) => (c.media_type === "movie" || c.media_type === "tv") && c.poster_path && c.vote_count > 50)
+          .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+        // Dedupe by id within this person's credits
+        const seen = new Set<number>();
+        return credits.filter((c: any) => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 20);
+      } catch {
+        return p.known_for || [];
+      }
+    })
+  );
+
+  const personCredits: TmdbSearchResult[] = creditArrays
+    .flat()
     .filter((r: any) => (r.media_type === "movie" || r.media_type === "tv") && r.poster_path)
     .map((r: any) => ({
       id: r.id,
-      title: r.media_type === "movie" ? r.title : r.name,
+      title: r.media_type === "movie" ? (r.title || r.name) : (r.name || r.title),
       type: r.media_type === "movie" ? "Movie" : "TV Show",
       posterUrl: r.poster_path ? `${TMDB_IMG}/w342${r.poster_path}` : null,
       releaseDate: r.release_date || r.first_air_date || null,
@@ -91,13 +109,13 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
       rating: Math.round((r.vote_average || 0) * 10) / 10,
     }));
 
-  // Merge: title results first, then known_for (deduped by id)
+  // Merge: title results first, then person credits (deduped by id)
   const seenIds = new Set(titleResults.map(r => r.id));
   const merged = [...titleResults];
-  for (const r of knownForResults) {
+  for (const r of personCredits) {
     if (!seenIds.has(r.id)) { seenIds.add(r.id); merged.push(r); }
   }
-  return merged.slice(0, 10);
+  return merged.slice(0, 15);
 }
 
 export async function getTmdbSeasonCount(tmdbId: number): Promise<{ seasons: number; episodes: number }> {
