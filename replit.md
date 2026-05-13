@@ -79,3 +79,36 @@ Hotlist is a movie and TV show recommendation tracker. Users collect recommendat
 - Reserved VM (always-on, no cold starts)
 - Build: `npm run build` → Run: `node ./dist/index.cjs`
 - Self-ping keepalive: server pings `/api/health` every 4 min in production to prevent idle termination
+
+## Ways of Working
+
+### Session Start Checklist (Agent)
+At the start of every session, the agent must:
+1. Review this Ways of Working section and confirm it is being followed
+2. Check deployment logs for any production errors since last session
+3. Summarise what was completed last session and what is outstanding
+
+### Before Declaring Any Feature Done
+The agent must:
+1. **Run a Playwright end-to-end test** against the specific feature/flow — clean logs alone are not sufficient
+2. **Be explicit about what cannot be verified** — anything requiring a logged-in session that the screenshot tool cannot reach must be flagged clearly, not silently assumed to work
+3. Only tell the user something is done when a test has confirmed it, or when the limitation is explicitly stated
+
+### Before Publishing
+- Batch multiple fixes into one publish — avoid publishing per individual fix
+- Confirm at least one test has passed for the changes in the batch
+- Aim for one publish per session, not per change
+
+### How to Test in the Dev Preview (for the user)
+The app runs live in development at the same Replit preview URL (the browser panel inside Replit). To test before publishing:
+1. Open the preview panel in Replit (the browser icon in the right sidebar, or the URL shown at the top of the Webview tab)
+2. Log in using your normal Replit account — this is a real session against the dev database
+3. Test the new feature as you normally would in the app
+4. Only click Publish once you're happy with what you see in dev
+
+The dev environment and production are separate — anything you add/change in dev does not affect production data, so it is safe to test freely.
+
+### Known Agent Limitations
+- The screenshot tool is always logged out — it cannot visually verify any authenticated UI
+- Production-only issues (iOS auth, cold starts, etc.) may not reproduce in dev — check deployment logs when users report bugs
+- MDBList enrichment runs on server start — allow 2-3 min after restart before checking RT rating updates
