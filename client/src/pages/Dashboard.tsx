@@ -113,6 +113,19 @@ export default function Dashboard() {
   }, [profile?.preferredRating]);
   const [activeTab, setActiveTab] = useState<ActiveTab>("mylist");
 
+  const switchTab = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    setSearch("");
+    setTypeFilter("all");
+    setGenreFilter("all");
+    setPlatformFilter("all");
+    setFriendFilter("all");
+    setHotRatingFilter("all");
+    setWatchingFilter("all");
+    setWatchWithFilter("all");
+    setShowFilters(false);
+  };
+
   const [hotRatingItem, setHotRatingItem] = useState<Recommendation | null>(null);
   const [detailItem, setDetailItem] = useState<Recommendation | null>(null);
   const [editItem, setEditItem] = useState<Recommendation | null>(null);
@@ -431,7 +444,7 @@ export default function Dashboard() {
             className={`flex-1 py-3 text-xs font-semibold text-center transition-colors relative ${
               activeTab === "mylist" ? "text-foreground" : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("mylist")}
+            onClick={() => switchTab("mylist")}
             data-testid="tab-mylist"
           >
             My List ({myListItems.length})
@@ -441,7 +454,7 @@ export default function Dashboard() {
             className={`flex-1 py-3 text-xs font-semibold text-center transition-colors relative ${
               activeTab === "hotlist" ? "text-primary" : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("hotlist")}
+            onClick={() => switchTab("hotlist")}
             data-testid="tab-hotlist"
           >
             <span className="flex items-center justify-center gap-1">
@@ -454,7 +467,7 @@ export default function Dashboard() {
             className={`flex-1 py-3 text-xs font-semibold text-center transition-colors relative ${
               activeTab === "watched" ? "text-foreground" : "text-muted-foreground"
             }`}
-            onClick={() => setActiveTab("watched")}
+            onClick={() => switchTab("watched")}
             data-testid="tab-watched"
           >
             Watched ({watchedItems.length})
