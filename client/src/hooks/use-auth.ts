@@ -18,7 +18,7 @@ function readCachedUser(): AuthUser | null {
 function writeCachedUser(user: AuthUser | null) {
   try {
     if (user) {
-      localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ user, exp: Date.now() + 1000 * 60 * 30 }));
+      localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ user, exp: Date.now() + 1000 * 60 * 60 * 4 }));
     } else {
       localStorage.removeItem(AUTH_CACHE_KEY);
     }

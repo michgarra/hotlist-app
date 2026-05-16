@@ -17,12 +17,40 @@ import { Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
+const PROFILE_CACHE_KEY = "hl_profile_cache";
+const PROFILE_CACHE_TTL = 1000 * 60 * 60 * 4;
+
+function readCachedProfile(): object | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const { profile, exp } = JSON.parse(raw);
+    if (Date.now() > exp) { localStorage.removeItem(PROFILE_CACHE_KEY); return null; }
+    return profile;
+  } catch { return null; }
+}
+
+function writeCachedProfile(profile: object | null) {
+  try {
+    if (profile) {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ profile, exp: Date.now() + PROFILE_CACHE_TTL }));
+    } else {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+    }
+  } catch {}
+}
+
 function AuthenticatedApp() {
   const { user, logout, isBeta } = useAuth();
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
     enabled: isBeta,
+    initialData: () => readCachedProfile() ?? undefined,
+    select: (data: any) => {
+      if (data) writeCachedProfile(data);
+      return data;
+    },
   });
 
   // Prefetch recommendations in parallel with profile so Dashboard renders instantly
