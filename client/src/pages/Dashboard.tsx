@@ -317,7 +317,7 @@ export default function Dashboard() {
     const matchesPlatform = platformFilter === "all" || getPlatforms(item.platform).includes(platformFilter);
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
     const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
-    const matchesWatching = watchingFilter === "all" || item.status === "Watching";
+    const matchesWatching = watchingFilter === "all" || (watchingFilter === "watching" && item.status === "Watching") || (watchingFilter === "hot" && item.status === "Hot");
     const matchesWatchWith = watchWithFilter === "all" || (item.watchWith && item.watchWith.split(",").map(n => n.trim().toLowerCase()).includes(watchWithFilter.toLowerCase()));
     return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating && matchesWatching && matchesWatchWith;
   });
@@ -551,7 +551,7 @@ export default function Dashboard() {
                 <Select
                   value={watchWithFilter !== "all" ? watchWithFilter : watchingFilter}
                   onValueChange={(val) => {
-                    if (val === "all" || val === "watching") {
+                    if (val === "all" || val === "watching" || val === "hot") {
                       setWatchingFilter(val);
                       setWatchWithFilter("all");
                     } else {
@@ -565,8 +565,9 @@ export default function Dashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Watch</SelectItem>
-                    <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wide">My Watching</div>
-                    <SelectItem value="watching">Currently Watching</SelectItem>
+                    <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wide">My Tags</div>
+                    <SelectItem value="hot">My Hot</SelectItem>
+                    <SelectItem value="watching">My Watching</SelectItem>
                     {uniqueWatchWith.length > 0 && (
                       <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wide">Watch With</div>
                     )}
