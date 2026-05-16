@@ -63,7 +63,9 @@ export async function registerRoutes(
           MAX(overview) AS overview,
           COUNT(DISTINCT user_id)::int AS user_count,
           COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int AS recent_count,
-          COUNT(CASE WHEN created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days' THEN 1 END)::int AS prev_count
+          COUNT(CASE WHEN created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days' THEN 1 END)::int AS prev_count,
+          ROUND(AVG(hot_rating) FILTER (WHERE hot_rating IS NOT NULL)::numeric, 1) AS avg_hot_rating,
+          COUNT(hot_rating) FILTER (WHERE hot_rating IS NOT NULL)::int AS hot_rating_count
         FROM recommendations
         WHERE tmdb_id IS NOT NULL
         GROUP BY tmdb_id
@@ -85,6 +87,8 @@ export async function registerRoutes(
           rtRating: row.rt_rating,
           overview: row.overview,
           userCount: row.user_count,
+          avgHotRating: row.avg_hot_rating ? Number(row.avg_hot_rating) : null,
+          hotRatingCount: row.hot_rating_count || 0,
           trend,
         };
       });

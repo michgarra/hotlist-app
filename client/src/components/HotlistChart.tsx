@@ -16,6 +16,8 @@ interface HotlistEntry {
   imdbRating: number | null;
   overview: string | null;
   userCount: number;
+  avgHotRating: number | null;
+  hotRatingCount: number;
   trend: "up" | "down" | "stable";
 }
 
@@ -169,11 +171,26 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
                   {entry.genre ? ` · ${entry.genre.split(",")[0].trim()}` : ""}
                   {entry.imdbRating ? ` · ★ ${entry.imdbRating.toFixed(1)}` : ""}
                 </p>
-                <div className="flex items-center gap-1 mt-1">
-                  <Users className="w-3 h-3 text-muted-foreground/60" />
-                  <span className="text-xs text-muted-foreground/60">
-                    {entry.userCount} {entry.userCount === 1 ? "person" : "people"}
-                  </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-3 h-3 text-muted-foreground/60" />
+                    <span className="text-xs text-muted-foreground/60">
+                      {entry.userCount} {entry.userCount === 1 ? "person" : "people"}
+                    </span>
+                  </div>
+                  {entry.avgHotRating !== null && entry.hotRatingCount > 0 && (
+                    <div className="flex items-center gap-0.5">
+                      <Flame className="w-3 h-3 text-primary" />
+                      <span className="text-xs font-medium text-primary">
+                        {entry.avgHotRating.toFixed(1)}
+                        {entry.hotRatingCount > 1 && (
+                          <span className="text-muted-foreground font-normal ml-0.5">
+                            ({entry.hotRatingCount})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

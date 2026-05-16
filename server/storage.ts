@@ -186,17 +186,19 @@ export class DatabaseStorage implements IStorage {
     return item;
   }
 
-  async getCommunityData(tmdbId: number): Promise<{ tags: { tag: string; count: number }[]; reviews: { text: string; author: string }[] }> {
+  async getCommunityData(tmdbId: number): Promise<{ tags: { tag: string; count: number }[]; reviews: { text: string; author: string }[]; avgHotRating: number | null; hotRatingCount: number }> {
     const rows = await db.execute(
-      sql`SELECT r.watch_tags, r.watch_review, p.name
+      sql`SELECT r.watch_tags, r.watch_review, r.hot_rating, p.name
           FROM recommendations r
           LEFT JOIN user_profiles p ON p.user_id = r.user_id
           WHERE r.tmdb_id = ${tmdbId}
-            AND (r.watch_tags IS NOT NULL OR r.watch_review IS NOT NULL)`
+            AND (r.watch_tags IS NOT NULL OR r.watch_review IS NOT NULL OR r.hot_rating IS NOT NULL)`
     );
 
     const tagCounts: Record<string, number> = {};
     const reviews: { text: string; author: string }[] = [];
+
+    const hotRatings: number[] = [];
 
     for (const row of rows.rows as any[]) {
       if (row.watch_tags) {
@@ -208,6 +210,9 @@ export class DatabaseStorage implements IStorage {
         const firstName = row.name ? String(row.name).split(" ")[0] : "A Hotlister";
         reviews.push({ text: String(row.watch_review), author: firstName });
       }
+      if (row.hot_rating != null) {
+        hotRatings.push(Number(row.hot_rating));
+      }
     }
 
     const tags = Object.entries(tagCounts)
@@ -215,7 +220,11 @@ export class DatabaseStorage implements IStorage {
       .slice(0, 12)
       .map(([tag, count]) => ({ tag, count }));
 
-    return { tags, reviews };
+    const avgHotRating = hotRatings.length > 0
+      ? Math.round((hotRatings.reduce((a, b) => a + b, 0) / hotRatings.length) * 10) / 10
+      : null;
+
+    return { tags, reviews, avgHotRating, hotRatingCount: hotRatings.length };
   }
 
   async getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>> {

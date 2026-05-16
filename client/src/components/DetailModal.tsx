@@ -22,6 +22,8 @@ interface TmdbExtras {
 interface CommunityData {
   tags: { tag: string; count: number }[];
   reviews: { text: string; author: string }[];
+  avgHotRating: number | null;
+  hotRatingCount: number;
 }
 
 function formatRuntime(mins: number | null | undefined): string | null {
@@ -338,12 +340,21 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
             </div>
           )}
 
-          {/* Community keywords */}
-          {communityTags.length > 0 && (
+          {/* Community avg hot rating + keywords */}
+          {(community?.avgHotRating != null || communityTags.length > 0) && (
             <div data-testid="detail-community-tags">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hotlist Members Say</h4>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hotlist Members Say</h4>
+                </div>
+                {community?.avgHotRating != null && community.hotRatingCount > 0 && (
+                  <div className="flex items-center gap-1" data-testid="community-avg-hot-rating">
+                    <Flame className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-sm font-semibold text-primary">{community.avgHotRating.toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground">avg · {community.hotRatingCount} {community.hotRatingCount === 1 ? "rating" : "ratings"}</span>
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {communityTags.map(({ tag, count }) => (
