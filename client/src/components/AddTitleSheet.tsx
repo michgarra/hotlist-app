@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2, Film, Tv, Star, Plus, ArrowLeft, UserPlus } from "lucide-react";
+import { Search, Loader2, Film, Tv, Star, Plus, ArrowLeft, UserPlus, Flame } from "lucide-react";
 import { useTmdbSearch, useCreateRecommendation, useUpdateRecommendation, useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useToast } from "@/hooks/use-toast";
 import type { Recommendation } from "@shared/schema";
@@ -38,6 +38,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [newFriendName, setNewFriendName] = useState("");
+  const [hotRating, setHotRating] = useState<number>(3);
   const [sheetStyle, setSheetStyle] = useState<React.CSSProperties>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
   const detailsScrollRef = useRef<HTMLDivElement>(null);
@@ -92,6 +93,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
       setWatchWithInput("");
       setNotes(editItem.notes || "");
       setPlatform(editItem.platform || "");
+      setHotRating(editItem.hotRating ?? 3);
       setSelectedItem({
         id: editItem.tmdbId || 0,
         title: editItem.title,
@@ -171,7 +173,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
         cast: details.cast ? (Array.isArray(details.cast) ? details.cast.join(", ") : details.cast) : null,
         director: details.director || null,
         censorRating: details.censorRating || null,
-        hotRating: isEditing ? editItem!.hotRating : null,
+        hotRating: isEditing && editItem!.hotRating != null ? hotRating : null,
       };
 
       if (isEditing) {
@@ -446,6 +448,39 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                   </Button>
                 </div>
               </div>
+
+              {isEditing && editItem?.hotRating != null && (
+                <div data-testid="edit-hot-rating">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">My flame rating</label>
+                  <div className="flex items-center gap-2 mb-2">
+                    {[1, 2, 3, 4, 5].map((i) => {
+                      const full = hotRating >= i;
+                      const half = !full && hotRating >= i - 0.5;
+                      return (
+                        <span key={i} className="relative inline-block w-7 h-7">
+                          <Flame className="w-7 h-7 text-muted-foreground/20" />
+                          {(full || half) && (
+                            <span className="absolute inset-0 overflow-hidden" style={{ width: half ? "55%" : "100%" }}>
+                              <Flame className="w-7 h-7 text-primary fill-primary" />
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                    <span className="text-sm font-semibold text-primary ml-1">{hotRating}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={5}
+                    step={0.5}
+                    value={hotRating}
+                    onChange={(e) => setHotRating(Number(e.target.value))}
+                    className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                    data-testid="slider-edit-hot-rating"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Comments</label>
