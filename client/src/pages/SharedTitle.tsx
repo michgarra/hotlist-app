@@ -3,15 +3,17 @@ import { useRoute } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Plus, Loader2, CheckCircle } from "lucide-react";
+import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Plus, Loader2, CheckCircle, LogIn } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 
 export default function SharedTitle() {
   const [, params] = useRoute("/shared/:id");
   const id = params?.id;
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
   const [added, setAdded] = useState(false);
 
   const { data: item, isLoading, isError } = useQuery({
@@ -186,10 +188,22 @@ export default function SharedTitle() {
               <CheckCircle className="w-4 h-4 mr-2" />
               Added to your Hotlist
             </Button>
+          ) : !authLoading && !user ? (
+            <>
+              <Button
+                className="w-full"
+                onClick={() => window.location.href = `/api/login?next=/shared/${id}`}
+                data-testid="button-login-to-add"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Log in to add to your Hotlist
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">You need to be logged in to save titles</p>
+            </>
           ) : (
             <Button
               onClick={() => addMutation.mutate()}
-              disabled={addMutation.isPending}
+              disabled={addMutation.isPending || authLoading}
               className="w-full"
               data-testid="button-add-shared"
             >
@@ -198,13 +212,15 @@ export default function SharedTitle() {
               ) : (
                 <Plus className="w-4 h-4 mr-2" />
               )}
-              Add to my Hotlist
+              + Add to my Hotlist
             </Button>
           )}
 
-          <Button variant="outline" className="w-full" onClick={() => window.location.href = "/"} data-testid="button-view-hotlist">
-            View my Hotlist
-          </Button>
+          {user && (
+            <Button variant="outline" className="w-full" onClick={() => window.location.href = "/"} data-testid="button-view-hotlist">
+              View my Hotlist
+            </Button>
+          )}
         </div>
       </div>
     </div>
