@@ -398,7 +398,7 @@ export default function Dashboard() {
                     {shareCopied
                       ? <Check className="w-4 h-4 text-green-500" />
                       : <Share2 className="w-4 h-4 text-muted-foreground" />}
-                    {shareCopied ? "Link copied!" : "Share my list"}
+                    {shareCopied ? "Link copied!" : "Share MY LIST"}
                   </button>
                   <button
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
