@@ -560,12 +560,13 @@ export default function Dashboard() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-[120px] h-8 text-xs" data-testid="filter-watching">
-                    <SelectValue placeholder="Watching" />
+                  <SelectTrigger className="w-[110px] h-8 text-xs" data-testid="filter-watching">
+                    <SelectValue placeholder="Watch" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Watching</SelectItem>
-                    <SelectItem value="watching">My Watching</SelectItem>
+                    <SelectItem value="all">Watch</SelectItem>
+                    <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wide">My Watching</div>
+                    <SelectItem value="watching">Currently Watching</SelectItem>
                     {uniqueWatchWith.length > 0 && (
                       <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase tracking-wide">Watch With</div>
                     )}
