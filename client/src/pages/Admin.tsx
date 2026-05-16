@@ -16,6 +16,8 @@ interface AdminUserRow {
   reviewed: number;
   friends: number;
   lastAdded: string | null;
+  loginCount: number;
+  lastLogin: string | null;
 }
 
 interface AdminStats {
@@ -167,6 +169,8 @@ export default function Admin() {
                   <th className="text-right px-4 py-3">Tagged</th>
                   <th className="text-right px-4 py-3">Friends</th>
                   <th className="text-right px-4 py-3">Last active</th>
+                  <th className="text-right px-4 py-3">Logins</th>
+                  <th className="text-right px-4 py-3">Last login</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,6 +189,8 @@ export default function Admin() {
                     </td>
                     <td className="px-4 py-2.5 text-right text-gray-500">{u.friends || "—"}</td>
                     <td className="px-4 py-2.5 text-right text-gray-400 text-xs">{daysAgo(u.lastAdded)}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-500">{u.loginCount || "—"}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-400 text-xs">{daysAgo(u.lastLogin)}</td>
                   </tr>
                 ))}
               </tbody>

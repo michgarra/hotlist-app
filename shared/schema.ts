@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, real, varchar, index, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, varchar, index, uuid, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -77,6 +77,15 @@ export const recommendations = pgTable("recommendations", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("recommendations_user_id_idx").on(table.userId),
+]);
+
+export const loginEvents = pgTable("login_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  loginAt: timestamp("login_at").defaultNow().notNull(),
+}, (table) => [
+  index("login_events_user_id_idx").on(table.userId),
+  index("login_events_login_at_idx").on(table.loginAt),
 ]);
 
 export const insertRecommendationSchema = createInsertSchema(recommendations).omit({

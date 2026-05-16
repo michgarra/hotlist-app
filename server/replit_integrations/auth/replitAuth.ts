@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
+import { storage } from "../../storage";
 
 const getOidcConfig = memoize(
   async () => {
@@ -114,13 +115,24 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/?auth_failed=1",
-    })(req, res, next);
-  });
+  app.get("/api/callback",
+    (req, res, next) => {
+      ensureStrategy(req.hostname);
+      passport.authenticate(`replitauth:${req.hostname}`, {
+        failureRedirect: "/?auth_failed=1",
+      })(req, res, next);
+    },
+    (req, res) => {
+      // Log the login event (fire-and-forget)
+      const userId = (req.user as any)?.claims?.sub;
+      if (userId) {
+        storage.logLoginEvent(userId).catch(() => {});
+      }
+      const returnTo = (req.session as any).returnTo || "/";
+      delete (req.session as any).returnTo;
+      res.redirect(returnTo);
+    }
+  );
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {

@@ -3,6 +3,7 @@ import {
   recommendations,
   userProfiles,
   friends,
+  loginEvents,
   type Recommendation,
   type InsertRecommendation,
   type UpdateRecommendationRequest,
@@ -26,6 +27,8 @@ export interface AdminUserRow {
   reviewed: number;
   friends: number;
   lastAdded: Date | null;
+  loginCount: number;
+  lastLogin: Date | null;
 }
 
 export interface AdminStats {
@@ -61,6 +64,7 @@ export interface IStorage {
   findFriendByName(userId: string, name: string): Promise<Friend | undefined>;
   getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>>;
   getCommunityData(tmdbId: number): Promise<{ tags: { tag: string; count: number }[]; reviews: { text: string; author: string }[] }>;
+  logLoginEvent(userId: string): Promise<void>;
   getAdminStats(): Promise<AdminStats>;
 }
 
@@ -235,8 +239,12 @@ export class DatabaseStorage implements IStorage {
     return map;
   }
 
+  async logLoginEvent(userId: string): Promise<void> {
+    await db.insert(loginEvents).values({ userId });
+  }
+
   async getAdminStats(): Promise<AdminStats> {
-    const [userStats, titleStats, topTitlesRes, topTagsRes, weeklyRes, genreRes, friendCounts] = await Promise.all([
+    const [userStats, titleStats, topTitlesRes, topTagsRes, weeklyRes, genreRes, friendCounts, loginCounts] = await Promise.all([
       // Per-user breakdown joined with profiles
       db.execute(sql`
         SELECT
@@ -313,11 +321,22 @@ export class DatabaseStorage implements IStorage {
         FROM friends
         GROUP BY user_id
       `),
+      // Login counts + last login per user
+      db.execute(sql`
+        SELECT user_id, COUNT(*) as login_count, MAX(login_at) as last_login
+        FROM login_events
+        GROUP BY user_id
+      `),
     ]);
 
     const friendMap: Record<string, number> = {};
     for (const row of friendCounts.rows as any[]) {
       friendMap[row.user_id] = Number(row.friend_count);
+    }
+
+    const loginMap: Record<string, { count: number; last: Date | null }> = {};
+    for (const row of (loginCounts as any).rows as any[]) {
+      loginMap[row.user_id] = { count: Number(row.login_count), last: row.last_login ? new Date(row.last_login) : null };
     }
 
     const totals = (titleStats.rows[0] as any) || {};
@@ -335,6 +354,8 @@ export class DatabaseStorage implements IStorage {
       reviewed: Number(r.reviewed),
       friends: friendMap[r.user_id] || 0,
       lastAdded: r.last_added ? new Date(r.last_added) : null,
+      loginCount: loginMap[r.user_id]?.count ?? 0,
+      lastLogin: loginMap[r.user_id]?.last ?? null,
     }));
 
     const totalUsers = users.length;
