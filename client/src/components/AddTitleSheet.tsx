@@ -386,6 +386,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                       onChange={(e) => setNewFriendName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleAddFriend()}
                       autoFocus
+                      autoComplete="off"
                       data-testid="input-new-friend"
                     />
                     <Button size="sm" onClick={handleAddFriend} disabled={!newFriendName.trim() || createFriendMutation.isPending} data-testid="button-save-friend">
@@ -430,6 +431,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                         setWatchWithInput("");
                       }
                     }}
+                    autoComplete="off"
                     data-testid="input-watch-with"
                   />
                   <Button
