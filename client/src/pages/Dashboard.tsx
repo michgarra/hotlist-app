@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check } from "lucide-react";
+import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check, UserPlus } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -103,6 +103,7 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [ratingDisplay, setRatingDisplay] = useState<"imdb" | "rt" | "hot" | "friend">("imdb");
 
   // Seed ratingDisplay from profile once it's available
@@ -175,6 +176,21 @@ export default function Dashboard() {
     } catch {} finally {
       setShareLoading(false);
     }
+  };
+
+  const handleInvite = async () => {
+    const inviteUrl = "https://hotlist-watchlist.replit.app";
+    const name = profile?.name || user?.firstName || "me";
+    const text = `${name} uses Hotlist 🔥 to track movie & TV recommendations from friends — join us! ${inviteUrl}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Join me on Hotlist 🔥", text, url: inviteUrl });
+      } else {
+        await navigator.clipboard.writeText(`${text}`);
+        setInviteCopied(true);
+        setTimeout(() => setInviteCopied(false), 2500);
+      }
+    } catch {}
   };
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -383,6 +399,16 @@ export default function Dashboard() {
                       ? <Check className="w-4 h-4 text-green-500" />
                       : <Share2 className="w-4 h-4 text-muted-foreground" />}
                     {shareCopied ? "Link copied!" : "Share my list"}
+                  </button>
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
+                    onClick={handleInvite}
+                    data-testid="button-invite-friend"
+                  >
+                    {inviteCopied
+                      ? <Check className="w-4 h-4 text-green-500" />
+                      : <UserPlus className="w-4 h-4 text-muted-foreground" />}
+                    {inviteCopied ? "Link copied!" : "Invite a friend"}
                   </button>
                   <button
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
