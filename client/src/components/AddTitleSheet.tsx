@@ -39,6 +39,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   const [newFriendName, setNewFriendName] = useState("");
   const [sheetStyle, setSheetStyle] = useState<React.CSSProperties>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const detailsScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -108,7 +109,13 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
   }, [searchQuery]);
 
   const handleSelectResult = useCallback(async (result: TmdbResult) => {
+    // Dismiss keyboard immediately so the sheet expands to full height
+    // before showing the details view — otherwise iOS keeps the keyboard
+    // open and the poster/title area is hidden above the visible area
+    (document.activeElement as HTMLElement)?.blur();
     setSelectedItem(result);
+    // Scroll details to top after transition
+    setTimeout(() => detailsScrollRef.current?.scrollTo({ top: 0 }), 50);
     setIsFetchingDetails(true);
     try {
       const res = await fetch(`/api/tmdb/details/${result.id}?type=${encodeURIComponent(result.type)}`);
@@ -246,7 +253,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
         )}
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div ref={detailsScrollRef} className="flex-1 overflow-y-auto overscroll-contain">
           {!selectedItem && !isEditing ? (
               <div className="px-4 py-2" data-testid="list-search-results">
                 {isSearching && (
