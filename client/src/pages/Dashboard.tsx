@@ -85,8 +85,8 @@ export default function Dashboard() {
     staleTime: 60000,
   });
 
-  // Profile is already cached by App.tsx — read it here to seed ratingDisplay
-  const { data: profile } = useQuery<{ preferredRating?: string }>({
+  // Profile is already cached by App.tsx — read it here to seed ratingDisplay + avatar initial
+  const { data: profile } = useQuery<{ preferredRating?: string; name?: string }>({
     queryKey: ["/api/profile"],
     staleTime: Infinity,
   });
@@ -342,9 +342,9 @@ export default function Dashboard() {
                   data-testid="button-settings"
                 >
                   <Avatar className="w-8 h-8" data-testid="avatar-user">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
+                    <AvatarImage src={user?.profileImageUrl || undefined} alt={profile?.name || user?.firstName || "User"} />
                     <AvatarFallback className="text-[11px] bg-primary/80 text-white font-bold">
-                      {(user?.firstName?.[0] || "U").toUpperCase()}
+                      {(profile?.name?.[0] || user?.firstName?.[0] || "?").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>
@@ -353,9 +353,9 @@ export default function Dashboard() {
                 {/* User info */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b">
                   <Avatar className="w-10 h-10 flex-shrink-0">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || "User"} />
+                    <AvatarImage src={user?.profileImageUrl || undefined} alt={profile?.name || user?.firstName || "User"} />
                     <AvatarFallback className="text-sm bg-primary/20 font-bold">
-                      {(user?.firstName?.[0] || "U").toUpperCase()}
+                      {(profile?.name?.[0] || user?.firstName?.[0] || "?").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
