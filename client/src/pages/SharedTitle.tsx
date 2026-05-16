@@ -7,7 +7,9 @@ import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Plus, Loader2, CheckCir
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const PENDING_ADD_KEY = "hotlist_pending_add";
 
 export default function SharedTitle() {
   const [, params] = useRoute("/shared/:id");
@@ -25,6 +27,16 @@ export default function SharedTitle() {
     },
     enabled: !!id,
   });
+
+  // Auto-add if user just returned from login with a pending intent
+  useEffect(() => {
+    if (!user || authLoading || !item || added) return;
+    const pending = localStorage.getItem(PENDING_ADD_KEY);
+    if (pending === String(id)) {
+      localStorage.removeItem(PENDING_ADD_KEY);
+      addMutation.mutate();
+    }
+  }, [user, authLoading, item]);
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -192,13 +204,16 @@ export default function SharedTitle() {
             <>
               <Button
                 className="w-full"
-                onClick={() => window.location.href = `/api/login?next=/shared/${id}`}
+                onClick={() => {
+                  localStorage.setItem(PENDING_ADD_KEY, String(id));
+                  window.location.href = `/api/login?next=/shared/${id}`;
+                }}
                 data-testid="button-login-to-add"
               >
                 <LogIn className="w-4 h-4 mr-2" />
                 Log in to add to your Hotlist
               </Button>
-              <p className="text-xs text-center text-muted-foreground">You need to be logged in to save titles</p>
+              <p className="text-xs text-center text-muted-foreground">You'll be brought straight back here after logging in</p>
             </>
           ) : (
             <Button
