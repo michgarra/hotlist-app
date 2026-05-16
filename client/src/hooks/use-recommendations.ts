@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildUrl } from "@shared/routes";
 import type { InsertRecommendation, UpdateRecommendationRequest } from "@shared/schema";
+import { apiRequest, dispatchSessionExpired } from "@/lib/queryClient";
 
 export function useRecommendations() {
   return useQuery({
@@ -97,6 +98,10 @@ export function useTmdbSearch(query: string) {
     queryFn: async () => {
       if (!query || query.length < 2) return [];
       const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`);
+      if (res.status === 401) {
+        dispatchSessionExpired();
+        return [];
+      }
       if (!res.ok) return [];
       return res.json();
     },
