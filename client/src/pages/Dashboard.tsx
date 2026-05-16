@@ -664,16 +664,29 @@ export default function Dashboard() {
         )}
       </div>
 
-      {activeTab !== "hotlist" && (
+      {activeTab === "mylist" && (
         <div className="fixed bottom-6 right-6 z-40 sm:right-[calc(50%-14rem)]" data-testid="fab-add">
-          <Button
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-lg shadow-primary/30"
+          <button
+            className="flex items-center gap-2 bg-primary text-primary-foreground h-16 px-6 rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform"
             onClick={() => setIsAddOpen(true)}
             data-testid="button-add-title"
           >
             <Plus className="w-7 h-7" />
-          </Button>
+            <span className="font-bold text-base tracking-tight">Add title</span>
+          </button>
+        </div>
+      )}
+
+      {activeTab === "watched" && (
+        <div className="fixed bottom-6 right-6 z-40 sm:right-[calc(50%-14rem)]" data-testid="fab-add-watched">
+          <button
+            className="flex items-center gap-2 bg-violet-600 text-white h-16 px-6 rounded-full shadow-lg shadow-violet-500/30 active:scale-95 transition-transform"
+            onClick={() => setIsAddOpen(true)}
+            data-testid="button-add-watched-title"
+          >
+            <Plus className="w-7 h-7" />
+            <span className="font-bold text-base tracking-tight">Add watched</span>
+          </button>
         </div>
       )}
 
@@ -688,6 +701,7 @@ export default function Dashboard() {
           }
         }}
         editItem={editItem}
+        defaultStatus={activeTab === "watched" ? "Watched" : undefined}
       />
       <HotRatingDialog
         item={hotRatingItem}

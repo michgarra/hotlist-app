@@ -13,6 +13,7 @@ interface AddTitleSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editItem?: Recommendation | null;
+  defaultStatus?: string;
 }
 
 interface TmdbResult {
@@ -25,7 +26,7 @@ interface TmdbResult {
   rating: number;
 }
 
-export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetProps) {
+export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: AddTitleSheetProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<TmdbResult | null>(null);
@@ -152,6 +153,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem }: AddTitleSheetPro
         recommendedBy: recommendedBy || null,
         platform: platform || details.platform || null,
         status: isEditing ? editItem!.status : (() => {
+          if (defaultStatus) return defaultStatus;
           const rd = details.releaseDate || selectedItem.releaseDate;
           if (rd && new Date(rd + "T00:00:00") > new Date()) return "Coming Soon";
           return "Want to Watch";
