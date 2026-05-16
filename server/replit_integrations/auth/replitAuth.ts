@@ -110,7 +110,6 @@ export async function setupAuth(app: Express) {
     const returnTo = typeof req.query.next === "string" && req.query.next.startsWith("/") ? req.query.next : "/";
     (req.session as any).returnTo = returnTo;
     passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
@@ -159,6 +158,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
+    // Persist the refreshed token back to the session store so it survives the next request
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => (err ? reject(err) : resolve()))
+    );
     return next();
   } catch (error) {
     console.log(`[auth] refresh failed:`, error);
