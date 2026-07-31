@@ -143,11 +143,11 @@ export default function Dashboard() {
   const [myListIds, setMyListIds] = useState<number[]>([]);
   const [watchedIds, setWatchedIds] = useState<number[]>([]);
 
-  // Sync ordered IDs from server whenever server data changes
+  // Sync ordered IDs from server whenever server data changes (exclude archived)
   useEffect(() => {
     if (!isLoading) {
-      setMyListIds(serverItems.filter(i => i.status !== "Watched").map(i => i.id));
-      setWatchedIds(serverItems.filter(i => i.status === "Watched").map(i => i.id));
+      setMyListIds(serverItems.filter(i => i.status !== "Watched" && !i.archived).map(i => i.id));
+      setWatchedIds(serverItems.filter(i => i.status === "Watched" && !i.archived).map(i => i.id));
     }
   }, [serverItems, isLoading]);
 
@@ -156,7 +156,8 @@ export default function Dashboard() {
     const itemMap = new Map(serverItems.map(i => [i.id, i]));
     const myList = myListIds.map(id => itemMap.get(id)).filter(Boolean) as Recommendation[];
     const watched = watchedIds.map(id => itemMap.get(id)).filter(Boolean) as Recommendation[];
-    return { myList, watched };
+    const archived = (serverItems as Recommendation[]).filter(i => i.archived);
+    return { myList, watched, archived };
   }, [serverItems, myListIds, watchedIds]);
 
   const hasActiveFilters = !!(
@@ -259,6 +260,14 @@ export default function Dashboard() {
     deleteMutation.mutate(id);
   };
 
+  const handleArchive = (id: number) => {
+    updateMutation.mutate({ id, archived: true });
+  };
+
+  const handleUnarchive = (id: number) => {
+    updateMutation.mutate({ id, archived: false });
+  };
+
   const uniqueGenres = useMemo(() => {
     const genres = new Set<string>();
     serverItems.forEach((i: Recommendation) => {
@@ -315,7 +324,8 @@ export default function Dashboard() {
       ].filter(Boolean).join(" ").toLowerCase();
       return tokens.every(token => haystack.includes(token));
     })();
-    const matchesType = typeFilter === "all" || item.type === typeFilter;
+    // "archived" is a special view filter — don't apply type matching inside it
+    const matchesType = typeFilter === "all" || typeFilter === "archived" || item.type === typeFilter;
     const matchesGenre = genreFilter === "all" || (item.genre && item.genre.includes(genreFilter));
     const matchesPlatform = platformFilter === "all" || getPlatforms(item.platform).includes(platformFilter);
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
@@ -327,7 +337,9 @@ export default function Dashboard() {
 
   const myListItems = useMemo(() => applyFilters(items.myList), [items.myList, search, typeFilter, genreFilter, platformFilter, friendFilter, watchingFilter, watchWithFilter]);
   const watchedItems = useMemo(() => applyFilters(items.watched), [items.watched, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter, watchingFilter, watchWithFilter]);
-  const displayItems = activeTab === "mylist" ? myListItems : watchedItems;
+  const archivedItems = useMemo(() => applyFilters(items.archived), [items.archived, search, typeFilter, genreFilter, platformFilter, friendFilter, hotRatingFilter, watchingFilter, watchWithFilter]);
+  const isArchiveView = typeFilter === "archived";
+  const displayItems = isArchiveView ? archivedItems : activeTab === "mylist" ? myListItems : watchedItems;
   const displayIds = displayItems.map(i => i.id);
 
   // Drag enabled only when no filters active (reordering a subset is confusing)
@@ -514,6 +526,7 @@ export default function Dashboard() {
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="Movie">Movies</SelectItem>
                   <SelectItem value="TV Show">TV Shows</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -630,10 +643,12 @@ export default function Dashboard() {
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Flame className="w-12 h-12 text-muted-foreground/30 mb-4" />
                 <p className="font-medium text-muted-foreground">
-                  {activeTab === "mylist" ? "Your list is empty" : "No watched titles yet"}
+                  {isArchiveView ? "Nothing archived yet" : activeTab === "mylist" ? "Your list is empty" : "No watched titles yet"}
                 </p>
                 <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs">
-                  {activeTab === "mylist"
+                  {isArchiveView
+                    ? "Swipe right on any title to archive it"
+                    : activeTab === "mylist"
                     ? "Tap + below to add movies and shows recommended by friends"
                     : "Mark items as Watched and rate them to see them here"}
                 </p>
@@ -656,9 +671,11 @@ export default function Dashboard() {
                       item={item}
                       onStatusChange={handleStatusChange}
                       onDelete={handleDelete}
+                      onArchive={isArchiveView ? handleUnarchive : handleArchive}
                       onOpenDetail={setDetailItem}
                       onMarkWatched={handleMarkWatched}
                       isDragEnabled={isDragEnabled}
+                      isArchived={isArchiveView}
                       ratingDisplay={ratingDisplay}
                       popularTags={item.tmdbId ? (popularTagsMap[item.tmdbId] ?? []) : []}
                     />
@@ -670,7 +687,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {activeTab === "mylist" && (
+      {activeTab === "mylist" && !isArchiveView && (
         <div className="fixed bottom-6 right-6 z-40 sm:right-[calc(50%-14rem)]" data-testid="fab-add">
           <button
             className="flex items-center gap-2 bg-primary text-primary-foreground h-16 px-6 rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform"
@@ -683,7 +700,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {activeTab === "watched" && (
+      {activeTab === "watched" && !isArchiveView && (
         <div className="fixed bottom-6 right-6 z-40 sm:right-[calc(50%-14rem)]" data-testid="fab-add-watched">
           <button
             className="flex items-center gap-2 bg-violet-600 text-white h-16 px-6 rounded-full shadow-lg shadow-violet-500/30 active:scale-95 transition-transform"

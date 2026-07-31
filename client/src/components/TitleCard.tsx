@@ -12,9 +12,11 @@ interface TitleCardProps {
   item: Recommendation;
   onStatusChange: (id: number, status: string) => void;
   onDelete: (id: number) => void;
+  onArchive?: (id: number) => void;
   onOpenDetail: (item: Recommendation) => void;
   onMarkWatched: (item: Recommendation) => void;
   isDragEnabled?: boolean;
+  isArchived?: boolean;
   ratingDisplay?: "imdb" | "rt" | "hot" | "friend";
   popularTags?: string[];
 }
@@ -46,12 +48,14 @@ function firstPlatform(raw: string | null): string | null {
   return first;
 }
 
-export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMarkWatched, isDragEnabled = false, ratingDisplay = "imdb", popularTags = [] }: TitleCardProps) {
+export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDetail, onMarkWatched, isDragEnabled = false, isArchived = false, ratingDisplay = "imdb", popularTags = [] }: TitleCardProps) {
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [seasonCheck, setSeasonCheck] = useState<{ checking: boolean; hasNew: boolean | null; currentSeasons?: number }>({ checking: false, hasNew: null });
   const x = useMotionValue(0);
   const deleteOpacity = useTransform(x, [-150, -80], [1, 0]);
   const deleteScale = useTransform(x, [-150, -80], [1, 0.8]);
+  const archiveOpacity = useTransform(x, [80, 150], [0, 1]);
+  const archiveScale = useTransform(x, [80, 150], [0.8, 1]);
   const constraintsRef = useRef(null);
 
   const {
@@ -72,7 +76,9 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsSwipeDragging(false);
-    if (info.offset.x < -120) {
+    if (info.offset.x > 120 && onArchive) {
+      onArchive(item.id);
+    } else if (info.offset.x < -120) {
       onDelete(item.id);
     }
   };
@@ -160,6 +166,15 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
       )}
 
       <div ref={constraintsRef} className="relative overflow-hidden flex-1">
+        {/* Archive / Unarchive reveal — shown on left when swiping right */}
+        <motion.div
+          className="absolute left-0 top-0 bottom-0 flex items-center justify-start pl-6 bg-amber-500 rounded-lg"
+          style={{ opacity: archiveOpacity, scale: archiveScale }}
+        >
+          <span className="text-white font-bold text-sm">{isArchived ? "Unarchive" : "Archive"}</span>
+        </motion.div>
+
+        {/* Delete reveal — shown on right when swiping left */}
         <motion.div
           className="absolute right-0 top-0 bottom-0 flex items-center justify-end pr-6 bg-destructive rounded-lg"
           style={{ opacity: deleteOpacity, scale: deleteScale }}
@@ -169,7 +184,7 @@ export function TitleCard({ item, onStatusChange, onDelete, onOpenDetail, onMark
 
         <motion.div
           drag="x"
-          dragConstraints={{ left: -160, right: 0 }}
+          dragConstraints={{ left: -160, right: onArchive ? 160 : 0 }}
           dragElastic={0.1}
           dragDirectionLock
           onDragStart={() => setIsSwipeDragging(true)}
