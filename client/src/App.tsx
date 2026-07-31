@@ -42,10 +42,12 @@ function writeCachedProfile(profile: object | null) {
 
 function AuthenticatedApp() {
   const { user, logout, isBeta } = useAuth();
+  const isLoggedIn = !!user;
+
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
-    enabled: isBeta,
+    enabled: isLoggedIn && isBeta,
     initialData: () => readCachedProfile() ?? undefined,
     select: (data: any) => {
       if (data) writeCachedProfile(data);
@@ -56,16 +58,21 @@ function AuthenticatedApp() {
   // Prefetch recommendations in parallel with profile so Dashboard renders instantly
   useQuery({
     queryKey: ["/api/recommendations"],
-    enabled: isBeta,
+    enabled: isLoggedIn && isBeta,
     staleTime: Infinity,
   });
 
   // Prefetch friends list in parallel too
   useQuery({
     queryKey: ["/api/friends"],
-    enabled: isBeta,
+    enabled: isLoggedIn && isBeta,
     staleTime: Infinity,
   });
+
+  // Not logged in — show the app in browse/guest mode
+  if (!isLoggedIn) {
+    return <Dashboard />;
+  }
 
   if (!isBeta) {
     return <BetaWaitlist email={user?.email} onLogout={logout} />;
@@ -141,7 +148,7 @@ function AppContent() {
         {user ? <Onboarding /> : <Landing />}
       </Route>
       <Route path="/">
-        {user ? <AuthenticatedApp /> : <Landing />}
+        <AuthenticatedApp />
       </Route>
       <Route component={NotFound} />
     </Switch>

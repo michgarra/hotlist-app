@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildUrl } from "@shared/routes";
 import type { InsertRecommendation, UpdateRecommendationRequest } from "@shared/schema";
 import { apiRequest, dispatchSessionExpired } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useRecommendations() {
+  const { isAuthenticated } = useAuth();
   return useQuery({
     queryKey: ["/api/recommendations"],
+    enabled: isAuthenticated,
   });
 }
 
@@ -65,8 +68,10 @@ export function useDeleteRecommendation() {
 }
 
 export function useFriends() {
+  const { isAuthenticated } = useAuth();
   return useQuery({
     queryKey: ["/api/friends"],
+    enabled: isAuthenticated,
   });
 }
 

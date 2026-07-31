@@ -235,7 +235,7 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  app.get(api.tmdb.search.path, isAuthenticated, async (req, res) => {
+  app.get(api.tmdb.search.path, async (req, res) => {
     const query = req.query.q as string;
     if (!query) return res.json([]);
     try {
@@ -260,7 +260,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.tmdb.details.path, isAuthenticated, async (req, res) => {
+  app.get(api.tmdb.details.path, async (req, res) => {
     const tmdbId = Number(req.params.id);
     const mediaType = (req.query.type as string) === "TV Show" ? "tv" : "movie";
     try {

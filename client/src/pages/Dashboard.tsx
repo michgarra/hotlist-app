@@ -65,8 +65,10 @@ function getPlatforms(platform: string | null): string[] {
   return platform.split(",").map(p => normalizePlatform(p.trim())).filter(Boolean);
 }
 
+const EMPTY_RECOMMENDATIONS: Recommendation[] = [];
+
 export default function Dashboard() {
-  const { data: serverItems = [], isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
+  const { data: serverItems = EMPTY_RECOMMENDATIONS, isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
   const updateMutation = useUpdateRecommendation();
   const deleteMutation = useDeleteRecommendation();
   const { user, logout } = useAuth();
@@ -89,6 +91,7 @@ export default function Dashboard() {
   const { data: profile } = useQuery<{ preferredRating?: string; name?: string }>({
     queryKey: ["/api/profile"],
     staleTime: Infinity,
+    enabled: !!user,
   });
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -350,90 +353,93 @@ export default function Dashboard() {
             <h1 className="text-lg font-bold tracking-tight">HOTLIST</h1>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`transition-all ${shareCopied ? "text-green-400" : "text-orange-400 hover:text-orange-300"}`}
-              onClick={handleShare}
-              disabled={shareLoading}
-              data-testid="button-share"
-              title="Share my list"
-            >
-              {shareLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="text-white/80" onClick={() => setShowFriends(true)} data-testid="button-friends">
-              <Users className="w-4 h-4" />
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  className="ml-1 rounded-full ring-2 ring-transparent hover:ring-white/40 transition-all focus:outline-none"
-                  data-testid="button-settings"
+            {user ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`transition-all ${shareCopied ? "text-green-400" : "text-orange-400 hover:text-orange-300"}`}
+                  onClick={handleShare}
+                  disabled={shareLoading}
+                  data-testid="button-share"
+                  title="Share my list"
                 >
-                  <Avatar className="w-8 h-8" data-testid="avatar-user">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={profile?.name || user?.firstName || "User"} />
-                    <AvatarFallback className="text-[11px] bg-primary/80 text-white font-bold">
-                      {(profile?.name?.[0] || user?.firstName?.[0] || "?").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-0" data-testid="panel-settings">
-                {/* User info */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b">
-                  <Avatar className="w-10 h-10 flex-shrink-0">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={profile?.name || user?.firstName || "User"} />
-                    <AvatarFallback className="text-sm bg-primary/20 font-bold">
-                      {(profile?.name?.[0] || user?.firstName?.[0] || "?").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    {user?.firstName && (
-                      <p className="font-semibold text-sm truncate" data-testid="text-settings-name">
-                        {user.firstName}
-                      </p>
-                    )}
-                    {user?.email && (
-                      <p className="text-xs text-muted-foreground truncate" data-testid="text-settings-email">
-                        {user.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {/* Actions */}
-                <div className="p-2 space-y-0.5">
-                  <button
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
-                    onClick={handleShare}
-                    disabled={shareLoading}
-                    data-testid="button-share-list"
-                  >
-                    {shareCopied
-                      ? <Check className="w-4 h-4 text-green-500" />
-                      : <Share2 className="w-4 h-4 text-muted-foreground" />}
-                    {shareCopied ? "Link copied!" : "Share MY LIST"}
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
-                    onClick={handleInvite}
-                    data-testid="button-invite-friend"
-                  >
-                    {inviteCopied
-                      ? <Check className="w-4 h-4 text-green-500" />
-                      : <UserPlus className="w-4 h-4 text-muted-foreground" />}
-                    {inviteCopied ? "Link copied!" : "Invite a friend"}
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
-                    onClick={() => logout()}
-                    data-testid="button-logout"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign out
-                  </button>
-                </div>
-              </PopoverContent>
-            </Popover>
+                  {shareLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="text-white/80" onClick={() => setShowFriends(true)} data-testid="button-friends">
+                  <Users className="w-4 h-4" />
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="ml-1 rounded-full ring-2 ring-transparent hover:ring-white/40 transition-all focus:outline-none"
+                      data-testid="button-settings"
+                    >
+                      <Avatar className="w-8 h-8" data-testid="avatar-user">
+                        <AvatarImage src={user.profileImageUrl || undefined} alt={profile?.name || user.firstName || "User"} />
+                        <AvatarFallback className="text-[11px] bg-primary/80 text-white font-bold">
+                          {(profile?.name?.[0] || user.firstName?.[0] || "?").toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 p-0" data-testid="panel-settings">
+                    <div className="flex items-center gap-3 px-4 py-3 border-b">
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage src={user.profileImageUrl || undefined} alt={profile?.name || user.firstName || "User"} />
+                        <AvatarFallback className="text-sm bg-primary/20 font-bold">
+                          {(profile?.name?.[0] || user.firstName?.[0] || "?").toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        {user.firstName && (
+                          <p className="font-semibold text-sm truncate" data-testid="text-settings-name">{user.firstName}</p>
+                        )}
+                        {user.email && (
+                          <p className="text-xs text-muted-foreground truncate" data-testid="text-settings-email">{user.email}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-2 space-y-0.5">
+                      <button
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
+                        onClick={handleShare}
+                        disabled={shareLoading}
+                        data-testid="button-share-list"
+                      >
+                        {shareCopied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4 text-muted-foreground" />}
+                        {shareCopied ? "Link copied!" : "Share MY LIST"}
+                      </button>
+                      <button
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors"
+                        onClick={handleInvite}
+                        data-testid="button-invite-friend"
+                      >
+                        {inviteCopied ? <Check className="w-4 h-4 text-green-500" /> : <UserPlus className="w-4 h-4 text-muted-foreground" />}
+                        {inviteCopied ? "Link copied!" : "Invite a friend"}
+                      </button>
+                      <button
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-destructive hover:bg-destructive/10 transition-colors"
+                        onClick={() => logout()}
+                        data-testid="button-logout"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-primary text-white hover:bg-primary/90 font-semibold"
+                onClick={() => { window.location.href = `/api/login?next=${encodeURIComponent(window.location.pathname)}`; }}
+                data-testid="button-guest-login"
+              >
+                Log in
+              </Button>
+            )}
           </div>
         </div>
       </header>
