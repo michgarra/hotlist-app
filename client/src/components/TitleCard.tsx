@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Share2, Star, Flame, Tv, Film, RefreshCw, GripVertical, CalendarClock } from "lucide-react";
+import { Share2, Star, Flame, Tv, Film, RefreshCw, GripVertical, CalendarClock, Check } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
 
@@ -17,6 +17,9 @@ interface TitleCardProps {
   onMarkWatched: (item: Recommendation) => void;
   isDragEnabled?: boolean;
   isArchived?: boolean;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: number) => void;
   ratingDisplay?: "imdb" | "rt" | "hot" | "friend";
   popularTags?: string[];
 }
@@ -48,7 +51,7 @@ function firstPlatform(raw: string | null): string | null {
   return first;
 }
 
-export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDetail, onMarkWatched, isDragEnabled = false, isArchived = false, ratingDisplay = "imdb", popularTags = [] }: TitleCardProps) {
+export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDetail, onMarkWatched, isDragEnabled = false, isArchived = false, isSelectMode = false, isSelected = false, onToggleSelect, ratingDisplay = "imdb", popularTags = [] }: TitleCardProps) {
   const [isSwipeDragging, setIsSwipeDragging] = useState(false);
   const [seasonCheck, setSeasonCheck] = useState<{ checking: boolean; hasNew: boolean | null; currentSeasons?: number }>({ checking: false, hasNew: null });
   const x = useMotionValue(0);
@@ -154,7 +157,18 @@ export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDet
       className="flex items-stretch gap-1"
       data-testid={`card-recommendation-${item.id}`}
     >
-      {isDragEnabled && (
+      {isSelectMode ? (
+        <div
+          className="flex items-center px-2 touch-none"
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(item.id); }}
+        >
+          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+            isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
+          }`}>
+            {isSelected && <Check className="w-3 h-3 text-white" />}
+          </div>
+        </div>
+      ) : isDragEnabled && (
         <div
           {...listeners}
           className="flex items-center px-1 touch-none cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
@@ -183,18 +197,27 @@ export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDet
         </motion.div>
 
         <motion.div
-          drag="x"
+          drag={isSelectMode ? false : "x"}
           dragConstraints={{ left: -160, right: onArchive ? 160 : 0 }}
           dragElastic={0.1}
           dragDirectionLock
           onDragStart={() => setIsSwipeDragging(true)}
           onDragEnd={handleDragEnd}
           style={{ x }}
-          className="relative bg-card border-2 border-border/60 rounded-lg cursor-pointer shadow-sm"
+          className={`relative bg-card border-2 rounded-lg cursor-pointer shadow-sm transition-colors ${
+            isSelected ? "border-primary bg-primary/5" : "border-border/60"
+          }`}
           onClick={() => !isSwipeDragging && !isSortDragging && onOpenDetail(item)}
-          whileTap={isSwipeDragging ? undefined : { scale: 0.98 }}
+          whileTap={{ scale: 0.98 }}
           data-testid={`card-body-${item.id}`}
         >
+          {/* Invisible overlay in select mode — captures taps anywhere on the card */}
+          {isSelectMode && (
+            <div
+              className="absolute inset-0 z-10 rounded-lg"
+              onClick={(e) => { e.stopPropagation(); onToggleSelect?.(item.id); }}
+            />
+          )}
           <div className="p-2">
             <div className="flex items-start gap-2">
               <div className="flex-shrink-0 w-10 h-14 rounded overflow-hidden bg-muted" data-testid={`img-poster-${item.id}`}>

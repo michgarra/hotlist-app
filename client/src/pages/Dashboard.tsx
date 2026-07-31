@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRecommendations, useUpdateRecommendation, useDeleteRecommendation } from "@/hooks/use-recommendations";
 import { TitleCard } from "@/components/TitleCard";
 import { AddTitleSheet } from "@/components/AddTitleSheet";
@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check, UserPlus } from "lucide-react";
+import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check, UserPlus, CheckSquare } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -72,6 +72,7 @@ export default function Dashboard() {
   const updateMutation = useUpdateRecommendation();
   const deleteMutation = useDeleteRecommendation();
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
 
   const tmdbIds = useMemo(() =>
     Array.from(new Set((serverItems as Recommendation[]).filter(i => i.tmdbId != null).map(i => i.tmdbId as number))),
@@ -104,6 +105,8 @@ export default function Dashboard() {
   const [watchingFilter, setWatchingFilter] = useState("all");
   const [watchWithFilter, setWatchWithFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -268,6 +271,39 @@ export default function Dashboard() {
     updateMutation.mutate({ id, archived: false });
   };
 
+  const handleEnterSelectMode = () => setIsSelectMode(true);
+  const handleExitSelectMode = () => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  };
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const handleSelectAll = () => {
+    if (selectedIds.size === displayItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayItems.map((i: Recommendation) => i.id)));
+    }
+  };
+  const handleBulkArchive = async () => {
+    const ids = Array.from(selectedIds);
+    const update = isArchiveView ? { archived: false } : { archived: true };
+    await Promise.all(ids.map(id => apiRequest("PATCH", `/api/recommendations/${id}`, update)));
+    queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+    handleExitSelectMode();
+  };
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    await Promise.all(ids.map(id => apiRequest("DELETE", `/api/recommendations/${id}`)));
+    queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+    handleExitSelectMode();
+  };
+
   const uniqueGenres = useMemo(() => {
     const genres = new Set<string>();
     serverItems.forEach((i: Recommendation) => {
@@ -342,8 +378,8 @@ export default function Dashboard() {
   const displayItems = isArchiveView ? archivedItems : activeTab === "mylist" ? myListItems : watchedItems;
   const displayIds = displayItems.map(i => i.id);
 
-  // Drag enabled only when no filters active (reordering a subset is confusing)
-  const isDragEnabled = !hasActiveFilters && activeTab !== "hotlist";
+  // Drag enabled only when no filters active and not in select mode
+  const isDragEnabled = !hasActiveFilters && activeTab !== "hotlist" && !isSelectMode;
 
   if (isLoading) {
     return (
@@ -514,6 +550,22 @@ export default function Dashboard() {
             >
               <Filter className="w-4 h-4" />
             </Button>
+            {activeTab !== "hotlist" && !isSelectMode && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleEnterSelectMode}
+                data-testid="button-select-mode"
+                title="Select multiple"
+              >
+                <CheckSquare className="w-4 h-4" />
+              </Button>
+            )}
+            {isSelectMode && (
+              <Button variant="outline" size="sm" onClick={handleExitSelectMode} className="text-xs px-3" data-testid="button-select-cancel">
+                Cancel
+              </Button>
+            )}
           </div>
 
           {showFilters && (
@@ -676,6 +728,9 @@ export default function Dashboard() {
                       onMarkWatched={handleMarkWatched}
                       isDragEnabled={isDragEnabled}
                       isArchived={isArchiveView}
+                      isSelectMode={isSelectMode}
+                      isSelected={selectedIds.has(item.id)}
+                      onToggleSelect={handleToggleSelect}
                       ratingDisplay={ratingDisplay}
                       popularTags={item.tmdbId ? (popularTagsMap[item.tmdbId] ?? []) : []}
                     />
@@ -687,7 +742,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {activeTab === "mylist" && !isArchiveView && (
+      {activeTab === "mylist" && !isArchiveView && !isSelectMode && (
         <div className="fixed bottom-6 right-6 z-40 sm:right-[calc(50%-14rem)]" data-testid="fab-add">
           <button
             className="flex items-center gap-2 bg-primary text-primary-foreground h-16 px-6 rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform"
@@ -700,7 +755,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {activeTab === "watched" && !isArchiveView && (
+      {activeTab === "watched" && !isArchiveView && !isSelectMode && (
         <div className="fixed bottom-6 right-6 z-40 sm:right-[calc(50%-14rem)]" data-testid="fab-add-watched">
           <button
             className="flex items-center gap-2 bg-violet-600 text-white h-16 px-6 rounded-full shadow-lg shadow-violet-500/30 active:scale-95 transition-transform"
@@ -710,6 +765,40 @@ export default function Dashboard() {
             <Plus className="w-7 h-7" />
             <span className="font-bold text-base tracking-tight">Add watched</span>
           </button>
+        </div>
+      )}
+
+      {/* Bulk action bar — replaces FAB when in select mode */}
+      {isSelectMode && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border px-4 py-3 flex items-center gap-2 sm:max-w-sm sm:mx-auto sm:left-1/2 sm:-translate-x-1/2" data-testid="bulk-action-bar">
+          <span className="text-sm font-medium text-foreground flex-shrink-0">
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={handleSelectAll}
+            className="text-xs text-muted-foreground underline underline-offset-2 flex-1 text-left"
+            data-testid="button-select-all"
+          >
+            {selectedIds.size === displayItems.length ? "Deselect all" : "Select all"}
+          </button>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBulkArchive}
+              className="flex items-center gap-1.5 bg-amber-500 text-white h-10 px-4 rounded-full text-sm font-semibold active:scale-95 transition-transform"
+              data-testid="button-bulk-archive"
+            >
+              {isArchiveView ? "Unarchive" : "Archive"}
+            </button>
+          )}
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1.5 bg-destructive text-destructive-foreground h-10 px-4 rounded-full text-sm font-semibold active:scale-95 transition-transform"
+              data-testid="button-bulk-delete"
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
 
