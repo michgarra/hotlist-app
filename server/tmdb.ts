@@ -131,6 +131,82 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
   return titleResults.slice(0, 15);
 }
 
+/** Generate smart query variants to maximise TMDB hit rate */
+function buildQueryVariants(query: string): string[] {
+  const q = query.trim();
+  const variants = new Set<string>([q]);
+
+  const articleRe = /^(the|a|an)\s+/i;
+  const stripped = q.replace(articleRe, "").trim();
+
+  // Strip leading article so "The Life of Chuck" also tries "Life of Chuck"
+  if (stripped !== q) variants.add(stripped);
+
+  // Add common articles so "Life of Chuck" also tries "The Life of Chuck"
+  if (!articleRe.test(q)) {
+    variants.add(`The ${q}`);
+    if (/^[aeiou]/i.test(q)) variants.add(`An ${q}`);
+    else variants.add(`A ${q}`);
+  }
+
+  // Keyword-only: strip stop words so "Life of Chuck" → "Life Chuck"
+  const stopWords = new Set(["the", "a", "an", "of", "in", "on", "at", "to", "for", "and", "or", "but", "with"]);
+  const keywords = q.split(/\s+/).filter(w => !stopWords.has(w.toLowerCase()) && w.length > 1);
+  const keyQuery = keywords.join(" ");
+  if (keywords.length >= 2 && keyQuery.toLowerCase() !== q.toLowerCase()) variants.add(keyQuery);
+
+  // Word-join: "Black Shore" → "Blackshore"
+  if (q.includes(" ")) variants.add(q.replace(/ /g, ""));
+
+  // Cap at 5 variants to avoid excessive TMDB calls
+  return Array.from(variants).slice(0, 5);
+}
+
+/** Score how closely a result title matches what the user typed (higher = better match) */
+function matchScore(title: string, originalQuery: string): number {
+  const t = title.toLowerCase();
+  const q = originalQuery.toLowerCase().trim();
+  const qBare = q.replace(/^(the|a|an)\s+/i, "").trim();
+
+  if (t === q) return 100;
+  if (t === `the ${qBare}` || t === `a ${qBare}` || t === `an ${qBare}`) return 95;
+  if (t === qBare) return 90;
+  if (t.startsWith(q) || t.startsWith(qBare)) return 75;
+  if (t.includes(q) || t.includes(qBare)) return 50;
+  // Partial word overlap
+  const queryWords = qBare.split(/\s+/).filter(w => w.length > 2);
+  const matchedWords = queryWords.filter(w => t.includes(w));
+  if (queryWords.length > 0) return Math.round((matchedWords.length / queryWords.length) * 40);
+  return 0;
+}
+
+/** Smart multi-variant search: runs article/keyword variants in parallel, merges & ranks results */
+export async function smartSearch(query: string): Promise<TmdbSearchResult[]> {
+  const variants = buildQueryVariants(query);
+  const allResults = await Promise.all(variants.map(v => searchTmdb(v)));
+
+  // Merge, deduplicating by TMDB id — first occurrence wins (primary query first)
+  const seen = new Set<number>();
+  const merged: TmdbSearchResult[] = [];
+  for (const results of allResults) {
+    for (const r of results) {
+      if (!seen.has(r.id)) {
+        seen.add(r.id);
+        merged.push(r);
+      }
+    }
+  }
+
+  // Sort: closest title match first, then by TMDB rating as tiebreaker
+  merged.sort((a, b) => {
+    const scoreDiff = matchScore(b.title, query) - matchScore(a.title, query);
+    if (scoreDiff !== 0) return scoreDiff;
+    return (b.rating || 0) - (a.rating || 0);
+  });
+
+  return merged;
+}
+
 export async function getTmdbSeasonCount(tmdbId: number): Promise<{ seasons: number; episodes: number }> {
   const apiKey = getApiKey();
   const url = `${TMDB_BASE}/tv/${tmdbId}?api_key=${apiKey}&language=en-US`;

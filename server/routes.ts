@@ -5,7 +5,7 @@ import { pool } from "./db";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
-import { searchTmdb, getTmdbDetails, getTmdbSeasonCount } from "./tmdb";
+import { smartSearch, getTmdbDetails, getTmdbSeasonCount } from "./tmdb";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import path from "path";
 import fs from "fs";
@@ -239,22 +239,7 @@ export async function registerRoutes(
     const query = req.query.q as string;
     if (!query) return res.json([]);
     try {
-      // Build an alternate query to handle one-word vs two-word title variants
-      // e.g. "Black Shore" also searches "Blackshore", and "Blackshore" also tries "Black shore"
-      const altQuery = query.includes(" ")
-        ? query.replace(/ /g, "")          // "Black Shore" → "Blackshore"
-        : query.replace(/([a-z])([A-Z])/g, "$1 $2"); // camelCase split (bonus)
-
-      const searches: Promise<any[]>[] = [searchTmdb(query)];
-      if (altQuery !== query) searches.push(searchTmdb(altQuery));
-
-      const [primary, secondary = []] = await Promise.all(searches);
-
-      // Merge, deduplicating by TMDB id — primary results first
-      const seen = new Set(primary.map((r: any) => r.id));
-      const merged = [...primary, ...secondary.filter((r: any) => !seen.has(r.id))];
-
-      res.json(merged);
+      res.json(await smartSearch(query));
     } catch (err: any) {
       res.status(500).json({ message: err.message || "TMDB search failed" });
     }
