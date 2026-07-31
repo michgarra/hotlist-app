@@ -20,7 +20,7 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+  const sessionTtl = 90 * 24 * 60 * 60 * 1000; // 90 days
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
