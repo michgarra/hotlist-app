@@ -115,20 +115,26 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
       rating: Math.round((r.vote_average || 0) * 10) / 10,
     }));
 
-  // If person credits found, lead with them — title results for a person name are
-  // usually tribute docs / "Meryl Streep: ..." films, not what the user wants.
-  // If no person results, fall back to title results as normal.
+  // Merge title results and person credits, then sort by relevance so that
+  // a recent title match (e.g. "The Life of Chuck" for query "chuck") rises
+  // above unrelated filmography entries from a person hit (Chuck Norris).
+  const allItems = [...titleResults];
   if (personCredits.length > 0) {
-    const seenIds = new Set(personCredits.map(r => r.id));
-    const merged = [...personCredits];
-    for (const r of titleResults) {
-      if (!seenIds.has(r.id)) { seenIds.add(r.id); merged.push(r); }
+    const seenIds = new Set(titleResults.map(r => r.id));
+    for (const r of personCredits) {
+      if (!seenIds.has(r.id)) { seenIds.add(r.id); allItems.push(r); }
     }
-    return merged.slice(0, 15);
   }
 
-  // No person match — return title results only
-  return titleResults.slice(0, 15);
+  const currentYear = new Date().getFullYear();
+  allItems.sort((a, b) => {
+    const scoreA = searchRelevance(a, query, currentYear);
+    const scoreB = searchRelevance(b, query, currentYear);
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return (b.rating || 0) - (a.rating || 0);
+  });
+
+  return allItems.slice(0, 15);
 }
 
 /** Generate smart query variants to maximise TMDB hit rate */
@@ -162,6 +168,15 @@ function buildQueryVariants(query: string): string[] {
   return Array.from(variants).slice(0, 5);
 }
 
+/** Combined relevance score: title match + recency bonus so recent releases beat old filmography */
+function searchRelevance(result: TmdbSearchResult, query: string, currentYear: number): number {
+  const title = matchScore(result.title, query);
+  const year = result.releaseDate ? parseInt(result.releaseDate.slice(0, 4)) : 0;
+  // Recent releases get up to +30 points (scales from 2000 onward, capped at currentYear)
+  const recency = year >= 2000 ? Math.min(30, Math.round((year - 2000) / (currentYear - 2000) * 30)) : 0;
+  return title + recency;
+}
+
 /** Score how closely a result title matches what the user typed (higher = better match) */
 function matchScore(title: string, originalQuery: string): number {
   const t = title.toLowerCase();
@@ -172,6 +187,7 @@ function matchScore(title: string, originalQuery: string): number {
   if (t === `the ${qBare}` || t === `a ${qBare}` || t === `an ${qBare}`) return 95;
   if (t === qBare) return 90;
   if (t.startsWith(q) || t.startsWith(qBare)) return 75;
+  if (t.endsWith(q) || t.endsWith(qBare)) return 70;
   if (t.includes(q) || t.includes(qBare)) return 50;
   // Partial word overlap
   const queryWords = qBare.split(/\s+/).filter(w => w.length > 2);
@@ -197,9 +213,10 @@ export async function smartSearch(query: string): Promise<TmdbSearchResult[]> {
     }
   }
 
-  // Sort: closest title match first, then by TMDB rating as tiebreaker
+  // Sort: title match + recency first, then TMDB rating as tiebreaker
+  const currentYear = new Date().getFullYear();
   merged.sort((a, b) => {
-    const scoreDiff = matchScore(b.title, query) - matchScore(a.title, query);
+    const scoreDiff = searchRelevance(b, query, currentYear) - searchRelevance(a, query, currentYear);
     if (scoreDiff !== 0) return scoreDiff;
     return (b.rating || 0) - (a.rating || 0);
   });
