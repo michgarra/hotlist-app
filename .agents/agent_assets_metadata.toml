@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ZQtzGan5Krbmnl9zsRRqx"
+uri = "file://hotlist-updates.html"
+type = "unspecified"
+title = "Hotlist — What's New"
+description = "Apple-style feature summary panel for sharing. July 2026 session release."
