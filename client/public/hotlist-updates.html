@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hotlist — What's New</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #1c1c1e;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .panel {
+    width: 100%;
+    max-width: 390px;
+    background: #2c2c2e;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 0.5px rgba(255,255,255,0.1),
+      0 32px 64px rgba(0,0,0,0.6),
+      0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  /* ── Header ── */
+  .panel-header {
+    padding: 36px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  }
+  .app-icon {
+    width: 80px; height: 80px;
+    background: #000;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    border: 0.5px solid rgba(255,255,255,0.08);
+  }
+  .panel-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ff6a00;
+    margin-bottom: 6px;
+  }
+  .panel-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #f5f5f7;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .panel-subtitle {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #8e8e93;
+    line-height: 1.5;
+  }
+
+  /* ── Feature list ── */
+  .feature-list {
+    padding: 8px 0;
+  }
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 24px;
+    position: relative;
+  }
+  .feature-item + .feature-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 72px; right: 24px;
+    height: 0.5px;
+    background: rgba(255,255,255,0.07);
+  }
+  .feature-icon {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .feature-copy { flex: 1; padding-top: 2px; }
+  .feature-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f5f5f7;
+    letter-spacing: -0.01em;
+    margin-bottom: 3px;
+  }
+  .feature-desc {
+    font-size: 13px;
+    color: #8e8e93;
+    line-height: 1.5;
+  }
+
+  /* ── Footer button ── */
+  .panel-footer {
+    padding: 16px 24px 28px;
+    border-top: 0.5px solid rgba(255,255,255,0.08);
+  }
+  .continue-btn {
+    display: block;
+    width: 100%;
+    background: #ff6a00;
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+  .continue-btn:hover  { opacity: 0.88; }
+  .continue-btn:active { transform: scale(0.98); opacity: 0.80; }
+</style>
+</head>
+<body>
+
+<div class="panel">
+
+  <div class="panel-header">
+    <div class="app-icon">🔥</div>
+    <div class="panel-eyebrow">What's New</div>
+    <div class="panel-title">Hotlist Updates</div>
+    <div class="panel-subtitle">Five improvements to make tracking movies and shows faster and easier.</div>
+  </div>
+
+  <div class="feature-list">
+
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(10,132,255,0.15);">🔓</div>
+      <div class="feature-copy">
+        <div class="feature-name">Browse without signing in</div>
+        <div class="feature-desc">See the Hotlist, search, and title details before you create an account.</div>
+      </div>
+    </div>
+
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(48,209,88,0.15);">⏳</div>
+      <div class="feature-copy">
+        <div class="feature-name">Stay logged in for 90 days</div>
+        <div class="feature-desc">No more getting signed out unexpectedly. Sessions now last three months.</div>
+      </div>
+    </div>
+
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(10,132,255,0.15);">🔍</div>
+      <div class="feature-copy">
+        <div class="feature-name">Smarter search</div>
+        <div class="feature-desc">"the batman" and "batman" find the same film. Recent titles float to the top automatically.</div>
+      </div>
+    </div>
+
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(255,159,10,0.15);">📦</div>
+      <div class="feature-copy">
+        <div class="feature-name">Archive with a swipe right</div>
+        <div class="feature-desc">Hide a title without deleting it. Find it later under the Archived filter, or swipe right again to restore.</div>
+      </div>
+    </div>
+
+    <div class="feature-item">
+      <div class="feature-icon" style="background:rgba(191,90,242,0.15);">☑️</div>
+      <div class="feature-copy">
+        <div class="feature-name">Bulk select</div>
+        <div class="feature-desc">Tap the checkbox icon to select multiple titles, then archive or delete them all at once.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel-footer">
+    <button class="continue-btn">Continue</button>
+  </div>
+
+</div>
+
+</body>
+</html>
