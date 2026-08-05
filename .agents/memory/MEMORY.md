@@ -1,0 +1,1 @@
+- [User update panel convention](user-update-panel.md) — after any UX-impacting session, produce /hotlist-updates.html using the Apple-style template

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hotlist — What's New</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #1c1c1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .panel {
+    width: 100%;
+    max-width: 360px;
+    background: #2c2c2e;
+    border-radius: 26px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 0.5px rgba(255,255,255,0.10),
+      0 24px 60px rgba(0,0,0,0.65);
+  }
+
+  /* Header */
+  .header {
+    padding: 28px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  }
+  .app-icon {
+    width: 64px; height: 64px;
+    background: #000;
+    border-radius: 15px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #ff6a00;
+    margin-bottom: 4px;
+  }
+  .title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f5f5f7;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #8e8e93;
+    line-height: 1.4;
+  }
+
+  /* Features */
+  .features { padding: 4px 0; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 20px;
+    position: relative;
+  }
+  .row + .row::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 60px; right: 20px;
+    height: 0.5px;
+    background: rgba(255,255,255,0.07);
+  }
+
+  .icon {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px;
+  }
+
+  .copy { flex: 1; }
+  .name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f5f5f7;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+  .desc {
+    font-size: 12px;
+    color: #8e8e93;
+    line-height: 1.4;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 14px 20px 22px;
+    border-top: 0.5px solid rgba(255,255,255,0.08);
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    background: #ff6a00;
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    text-align: center;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+  }
+</style>
+</head>
+<body>
+<div class="panel">
+
+  <div class="header">
+    <div class="app-icon">🔥</div>
+    <div class="eyebrow">What's New</div>
+    <div class="title">Hotlist Updates</div>
+    <div class="subtitle">Five improvements to make tracking<br>movies and shows faster and easier.</div>
+  </div>
+
+  <div class="features">
+
+    <div class="row">
+      <div class="icon" style="background:rgba(10,132,255,0.15);">🔓</div>
+      <div class="copy">
+        <div class="name">Browse without signing in</div>
+        <div class="desc">See the Hotlist, search, and title details before you create an account.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="icon" style="background:rgba(48,209,88,0.15);">⏳</div>
+      <div class="copy">
+        <div class="name">Stay logged in for 90 days</div>
+        <div class="desc">No more getting signed out. Sessions now last three months.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="icon" style="background:rgba(10,132,255,0.15);">🔍</div>
+      <div class="copy">
+        <div class="name">Smarter search</div>
+        <div class="desc">"the batman" and "batman" find the same film. Recent titles float to the top.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="icon" style="background:rgba(255,159,10,0.15);">📦</div>
+      <div class="copy">
+        <div class="name">Archive with a swipe right</div>
+        <div class="desc">Hide a title without deleting it. Swipe right again to restore.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="icon" style="background:rgba(191,90,242,0.15);">☑️</div>
+      <div class="copy">
+        <div class="name">Bulk select</div>
+        <div class="desc">Tap the checkbox icon to select multiple titles, then archive or delete at once.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <button class="btn">Continue</button>
+  </div>
+
+</div>
+</body>
+</html>

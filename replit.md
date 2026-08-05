@@ -108,6 +108,15 @@ The app runs live in development at the same Replit preview URL (the browser pan
 
 The dev environment and production are separate — anything you add/change in dev does not affect production data, so it is safe to test freely.
 
+### User Update Panel — Business Rule
+At the end of any session where changes affect the user experience (new features, changed behaviour, removed friction, UI changes), the agent must:
+1. Produce or update `client/public/hotlist-updates.html` with a "What's New" panel covering all UX changes from that session
+2. Use the Apple-style panel design stored at `client/public/whats-new-template.html` as the template — dark background (#1c1c1e), rounded card (#2c2c2e), orange (#ff6a00) accent, Inter font, emoji icon badges, feature rows with name + one-line description, orange Continue button
+3. Keep the panel compact enough to fit in a single phone screenshot (max-width 360px, all items visible without scrolling)
+4. Tell the user the panel is ready and remind them the URL is `/hotlist-updates.html` on their published app
+
+Changes that qualify: new features, modified gestures or interactions, filter/navigation changes, performance improvements visible to the user, login/session behaviour changes. Changes that do not qualify: backend-only fixes, schema migrations, dependency updates with no visible effect.
+
 ### Known Agent Limitations
 - The screenshot tool is always logged out — it cannot visually verify any authenticated UI
 - Production-only issues (iOS auth, cold starts, etc.) may not reproduce in dev — check deployment logs when users report bugs
