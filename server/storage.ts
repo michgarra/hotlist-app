@@ -74,6 +74,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(recommendations.userId, userId))
       .orderBy(
         sql`${recommendations.sortOrder} ASC NULLS FIRST`,
+        sql`${recommendations.watchedAt} DESC NULLS LAST`,
         desc(recommendations.createdAt)
       );
   }
@@ -103,7 +104,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation> {
     const finalUpdates = updates.status === "Watched"
-      ? { ...updates, sortOrder: null }
+      ? { ...updates, sortOrder: null, watchedAt: new Date() }
       : updates;
     const [item] = await db
       .update(recommendations)

@@ -76,6 +76,7 @@ export const recommendations = pgTable("recommendations", {
   sortOrder: integer("sort_order"),
   archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow(),
+  watchedAt: timestamp("watched_at"),
 }, (table) => [
   index("recommendations_user_id_idx").on(table.userId),
 ]);
