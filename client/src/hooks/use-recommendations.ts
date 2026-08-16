@@ -30,6 +30,7 @@ export function useCreateRecommendation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
     },
   });
 }
@@ -49,6 +50,7 @@ export function useUpdateRecommendation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
     },
   });
 }
@@ -63,6 +65,7 @@ export function useDeleteRecommendation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
     },
   });
 }
