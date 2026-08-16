@@ -74,6 +74,8 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
 
   const { data: entries = [], isLoading } = useQuery<HotlistEntry[]>({
     queryKey: ["/api/hotlist"],
+    staleTime: 5 * 60 * 1000, // re-fetch at most every 5 minutes
+    refetchOnWindowFocus: true,
   });
 
   const addMutation = useMutation({
@@ -92,6 +94,7 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
       toast({ title: "Added to My List" });
       setAddingId(null);
     },
