@@ -352,6 +352,17 @@ export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDet
                           </button>
                           <button
                             className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
+                              item.status === "Watch Soon"
+                                ? "bg-amber-500 text-white border-amber-500"
+                                : "border-border text-muted-foreground hover:border-amber-400/60"
+                            }`}
+                            onClick={(e) => handleStatusClick(e, "Watch Soon")}
+                            data-testid={`button-watch-soon-${item.id}`}
+                          >
+                            Watch Soon
+                          </button>
+                          <button
+                            className={`h-5 px-2 rounded-full border text-[9px] font-medium transition-colors ${
                               item.status === "Watching"
                                 ? "bg-primary text-white border-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
