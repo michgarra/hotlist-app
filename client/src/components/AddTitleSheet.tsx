@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, Film, Tv, Star, Plus, ArrowLeft, UserPlus, Flame } from "lucide-react";
-import { useTmdbSearch, useCreateRecommendation, useUpdateRecommendation, useFriends, useCreateFriend } from "@/hooks/use-recommendations";
+import { useTmdbSearch, useRecommendations, useCreateRecommendation, useUpdateRecommendation, useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useToast } from "@/hooks/use-toast";
 import type { Recommendation } from "@shared/schema";
 
@@ -41,6 +41,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
   const [hotRating, setHotRating] = useState<number>(3);
   const [sheetStyle, setSheetStyle] = useState<React.CSSProperties>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const watchWithInputRef = useRef<HTMLInputElement>(null);
   const detailsScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,11 +79,41 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
   }, [open, selectedItem]);
 
   const { data: searchResults = [], isLoading: isSearching } = useTmdbSearch(debouncedQuery);
+  const { data: allRecommendations = [] } = useRecommendations();
   const createMutation = useCreateRecommendation();
   const updateMutation = useUpdateRecommendation();
   const { data: friendsList = [] } = useFriends();
   const createFriendMutation = useCreateFriend();
   const { toast } = useToast();
+
+  // Unique Watch With names from all existing titles — used for autocomplete
+  const allWatchWithNames = useMemo(() => {
+    const names = new Set<string>();
+    (allRecommendations as any[]).forEach(r => {
+      if (r.watchWith) {
+        r.watchWith.split(",").map((n: string) => n.trim()).filter(Boolean).forEach((n: string) => names.add(n));
+      }
+    });
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [allRecommendations]);
+
+  // Suggestions: names that start with current input and aren't already selected
+  const watchWithSuggestions = useMemo(() => {
+    const q = watchWithInput.trim().toLowerCase();
+    if (!q) return [];
+    return allWatchWithNames.filter(n =>
+      n.toLowerCase().startsWith(q) &&
+      !watchWith.some(w => w.toLowerCase() === n.toLowerCase())
+    );
+  }, [watchWithInput, allWatchWithNames, watchWith]);
+
+  const addWatchWithName = useCallback((name: string) => {
+    const trimmed = name.trim().replace(/,$/, "");
+    if (trimmed && !watchWith.some(n => n.toLowerCase() === trimmed.toLowerCase())) {
+      setWatchWith(prev => [...prev, trimmed]);
+    }
+    setWatchWithInput("");
+  }, [watchWith]);
 
   const isEditing = !!editItem;
 
@@ -418,36 +449,61 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add a name and press Enter"
-                    value={watchWithInput}
-                    onChange={(e) => setWatchWithInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if ((e.key === "Enter" || e.key === ",") && watchWithInput.trim()) {
-                        e.preventDefault();
-                        const name = watchWithInput.trim().replace(/,$/, "");
-                        if (name && !watchWith.includes(name)) setWatchWith(prev => [...prev, name]);
-                        setWatchWithInput("");
-                      }
-                    }}
-                    autoComplete="off"
-                    data-testid="input-watch-with"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const name = watchWithInput.trim();
-                      if (name && !watchWith.includes(name)) setWatchWith(prev => [...prev, name]);
-                      setWatchWithInput("");
-                    }}
-                    disabled={!watchWithInput.trim()}
-                    data-testid="button-add-watch-with"
-                  >
-                    Add
-                  </Button>
+                <div className="relative">
+                  <div className="flex gap-2">
+                    <Input
+                      ref={watchWithInputRef}
+                      placeholder="Add a name and press Enter"
+                      value={watchWithInput}
+                      onChange={(e) => setWatchWithInput(e.target.value)}
+                      onFocus={() => {
+                        setTimeout(() => watchWithInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 100);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          if (watchWithSuggestions.length > 0 && !watchWithInput.trim().includes(" ")) {
+                            // If there's exactly one suggestion matching, pick it; otherwise add what's typed
+                            const exact = watchWithSuggestions.find(n => n.toLowerCase() === watchWithInput.trim().toLowerCase());
+                            addWatchWithName(exact ?? watchWithInput);
+                          } else if (watchWithInput.trim()) {
+                            addWatchWithName(watchWithInput);
+                          }
+                        }
+                      }}
+                      autoComplete="off"
+                      data-testid="input-watch-with"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => addWatchWithName(watchWithInput)}
+                      disabled={!watchWithInput.trim()}
+                      data-testid="button-add-watch-with"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {/* Autocomplete suggestions */}
+                  {watchWithSuggestions.length > 0 && (
+                    <div className="absolute z-50 left-0 right-10 mt-1 bg-background border rounded-md shadow-lg overflow-hidden">
+                      {watchWithSuggestions.slice(0, 5).map(name => (
+                        <button
+                          key={name}
+                          type="button"
+                          className="w-full px-3 py-2 text-sm text-left hover:bg-accent active:bg-accent/80"
+                          onMouseDown={(e) => {
+                            // mouseDown fires before blur — prevent blur from hiding list before click registers
+                            e.preventDefault();
+                            addWatchWithName(name);
+                          }}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
