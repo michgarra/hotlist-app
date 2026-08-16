@@ -93,7 +93,7 @@ export default function SharedTitle() {
         cast: item.cast || null,
         director: item.director || null,
         notes: null,
-        recommendedBy: null,
+        recommendedBy: item.sharerName || null,
         hotRating: null,
       };
       await apiRequest("POST", "/api/recommendations", payload);
@@ -222,6 +222,13 @@ export default function SharedTitle() {
               </span>
             )}
           </div>
+
+          {item.sharerName && (
+            <div className="flex items-center gap-2" data-testid="text-shared-by">
+              <Flame className="w-4 h-4 text-primary" />
+              <span className="text-sm"><span className="font-medium">{item.sharerName}</span> added this to their Hotlist</span>
+            </div>
+          )}
 
           {item.platform && (
             <div className="flex items-center gap-2">

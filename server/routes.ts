@@ -30,6 +30,7 @@ export async function registerRoutes(
   app.get("/api/shared/:id", async (req, res) => {
     const item = await storage.getRecommendation(Number(req.params.id));
     if (!item) return res.status(404).json({ message: "Not found" });
+    const sharerProfile = await storage.getUserProfile(item.userId);
     res.json({
       id: item.id,
       title: item.title,
@@ -46,6 +47,7 @@ export async function registerRoutes(
       cast: item.cast,
       director: item.director,
       tmdbId: item.tmdbId,
+      sharerName: sharerProfile?.name ?? null,
     });
   });
 
