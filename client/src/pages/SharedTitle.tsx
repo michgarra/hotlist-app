@@ -3,13 +3,27 @@ import { useRoute } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Plus, Loader2, CheckCircle, LogIn } from "lucide-react";
+import { Star, Flame, Clock, Tv, Film, Users, Megaphone, Plus, Loader2, CheckCircle, LogIn, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 const PENDING_ADD_KEY = "hotlist_pending_add";
+
+// Detect when the page is running inside an app's in-app browser (WhatsApp,
+// Instagram, Facebook etc.) rather than a real Safari / Chrome session.
+// These browsers run in a sandboxed WebView with a separate cookie jar, so an
+// existing Hotlist session in Safari is invisible here.
+function detectInAppBrowser(): string | null {
+  const ua = navigator.userAgent;
+  if (ua.includes("WhatsApp")) return "WhatsApp";
+  if (ua.includes("Instagram")) return "Instagram";
+  if (ua.includes("FBAN") || ua.includes("FBAV")) return "Facebook";
+  // Generic iOS WebView — AppleWebKit present but "Safari" token absent
+  if (/iPhone|iPad|iPod/.test(ua) && ua.includes("AppleWebKit") && !ua.includes("Safari")) return "app";
+  return null;
+}
 
 export default function SharedTitle() {
   const [, params] = useRoute("/shared/:id");
@@ -17,6 +31,12 @@ export default function SharedTitle() {
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
   const [added, setAdded] = useState(false);
+  const [copyDone, setCopyDone] = useState(false);
+
+  const inAppBrowser = useMemo(() => detectInAppBrowser(), []);
+  // ?autoAdd=1 is appended to the returnTo URL so the intent survives even if
+  // localStorage is unavailable in the WebView after the OIDC redirect.
+  const autoAdd = useMemo(() => new URLSearchParams(window.location.search).get("autoAdd") === "1", []);
 
   const { data: item, isLoading, isError } = useQuery({
     queryKey: ["/api/shared", id],
@@ -28,11 +48,27 @@ export default function SharedTitle() {
     enabled: !!id,
   });
 
-  // Auto-add if user just returned from login with a pending intent
+  // Open current URL in Safari via the x-safari-https:// scheme.
+  // Works in WhatsApp's WKWebView on iOS. If it fails (non-iOS or blocked),
+  // falls back to copying the link to the clipboard after 600 ms.
+  const openInSafari = () => {
+    window.location.href = "x-safari-" + window.location.href;
+    setTimeout(() => {
+      navigator.clipboard?.writeText(window.location.href).then(() => setCopyDone(true));
+    }, 600);
+  };
+
+  const copyLink = () => {
+    navigator.clipboard?.writeText(window.location.href).then(() => setCopyDone(true));
+  };
+
+  // Auto-add as soon as the user arrives back after login.
+  // Triggered by either the localStorage key OR the ?autoAdd=1 URL param —
+  // whichever survived the OIDC redirect in the current browser context.
   useEffect(() => {
     if (!user || authLoading || !item || added) return;
     const pending = localStorage.getItem(PENDING_ADD_KEY);
-    if (pending === String(id)) {
+    if (pending === String(id) || autoAdd) {
       localStorage.removeItem(PENDING_ADD_KEY);
       addMutation.mutate();
     }
@@ -101,6 +137,34 @@ export default function SharedTitle() {
         <Flame className="w-5 h-5 text-primary fill-primary" />
         <span className="font-bold text-lg tracking-tight">HOTLIST</span>
       </header>
+
+      {/* In-app browser banner — shown when we detect WhatsApp/Instagram/Facebook
+          WebView and the user is not already logged in. Guides them to Safari
+          where their existing Hotlist session likely already exists. */}
+      {inAppBrowser && !user && !authLoading && (
+        <div className="bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-800 px-4 py-3">
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+            Already on Hotlist? Open in Safari — you may already be logged in.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openInSafari}
+              className="flex items-center gap-1.5 bg-amber-500 text-white text-xs font-semibold px-3 py-1.5 rounded-full active:opacity-80"
+              data-testid="button-open-in-safari"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Open in Safari
+            </button>
+            <button
+              onClick={copyLink}
+              className="text-xs text-amber-700 dark:text-amber-300 underline underline-offset-2"
+              data-testid="button-copy-link"
+            >
+              {copyDone ? "Copied ✓" : "Copy link"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-lg mx-auto p-4">
         {item.posterUrl && (
@@ -206,14 +270,18 @@ export default function SharedTitle() {
                 className="w-full"
                 onClick={() => {
                   localStorage.setItem(PENDING_ADD_KEY, String(id));
-                  window.location.href = `/api/login?next=/shared/${id}`;
+                  // ?autoAdd=1 is a URL-param fallback: if localStorage is
+                  // unavailable after the OIDC redirect (possible in WebViews),
+                  // the auto-add useEffect still fires on the ?autoAdd=1 param.
+                  const returnTo = encodeURIComponent(`/shared/${id}?autoAdd=1`);
+                  window.location.href = `/api/login?next=${returnTo}`;
                 }}
                 data-testid="button-login-to-add"
               >
                 <LogIn className="w-4 h-4 mr-2" />
                 Log in to add to your Hotlist
               </Button>
-              <p className="text-xs text-center text-muted-foreground">You'll be brought straight back here after logging in</p>
+              <p className="text-xs text-center text-muted-foreground">You'll land straight back here — it only takes a moment</p>
             </>
           ) : (
             <Button
