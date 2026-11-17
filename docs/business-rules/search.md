@@ -50,3 +50,16 @@ can find it; it does not establish why the user could not find it in the
 published Add Title screen. That path still needs reproduction.
 
 No unified-search implementation has been applied as part of recording these rules.
+
+### History check
+
+The owner recalls TMDB search working from the default screen and raised the
+possibility of a regression. Treat that report seriously; do not describe
+TMDB title/actor search as wholly new functionality.
+
+In the available Dashboard history, the earliest version already filters saved
+records locally. The later actor/filmography search improvements inspected
+changed the TMDB backend used by Add Title, not the Dashboard's main search.
+No removal of a TMDB-backed main search was identified in that history check.
+This does not establish that the owner's previously experienced workflow never
+existed, or reproduce the published Add Title failure.
