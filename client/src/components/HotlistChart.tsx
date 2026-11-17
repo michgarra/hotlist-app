@@ -117,7 +117,6 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
   });
   const mainEntries = filtered.filter(e => e.section === "ranked");
   const earlyEntries = filtered.filter(e => e.section === "early");
-  const hasDatedMainRatings = mainEntries.some(e => e.datedRatingCount > 0);
 
   if (isLoading) {
     return (
@@ -130,10 +129,6 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
 
   return (
     <div className="flex flex-col">
-      <p className="px-3 py-2 text-xs text-muted-foreground">
-        Trending by member ratings, community support and recency. At least 2 ratings are needed to rank.
-        Rating influence halves every 30 days. Scores shown are members’ actual averages out of 5.
-      </p>
       {isError && (
         <div role="alert" className="px-3 py-2 text-sm text-muted-foreground">
           Couldn’t refresh the rankings. {entries.length > 0 && "Showing the last loaded results. "}
@@ -157,12 +152,7 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
         <div className="pb-24">
           {mainEntries.length === 0 && (
             <p className="px-3 py-4 text-sm text-muted-foreground" data-testid="hotlist-no-ranked">
-              No matching titles have two member ratings yet.
-            </p>
-          )}
-          {mainEntries.length > 0 && !hasDatedMainRatings && (
-            <p className="px-3 py-3 text-xs text-muted-foreground" data-testid="hotlist-undated-notice">
-              These older ratings have no recorded rating dates. They’re ordered by weighted community support until dated ratings arrive.
+              No ranked titles yet.
             </p>
           )}
           {[...mainEntries, ...earlyEntries].map((entry, index) => (
@@ -170,7 +160,6 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
               {entry.section === "early" && index === mainEntries.length && (
                 <div className="px-3 pt-5 pb-2" data-testid="hotlist-early-heading">
                   <h3 className="text-sm font-semibold">Early ratings</h3>
-                  <p className="text-xs text-muted-foreground">One member has rated each title. They need a second rating to join the main Hotlist.</p>
                 </div>
               )}
             <div
@@ -198,9 +187,6 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold leading-tight truncate">{entry.title}</p>
-                {entry.datedRatingCount === 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Rating dates unavailable · no recency boost</p>
-                )}
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {entry.type}
                   {entry.genre ? ` · ${entry.genre.split(",")[0].trim()}` : ""}

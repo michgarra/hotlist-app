@@ -9,6 +9,12 @@ Consult `docs/business-rules/` before changing Hotlist ranking or people/duplica
 
 **How to apply:** Read the relevant rule, distinguish agreed policy from implemented/published behaviour, and update it when the owner changes direction. Do not fall back to the superseded average-only ranking decision.
 
+Keep Hotlist ranking rationale in the business-rules folder, not on the user screen.
+
+**Why:** The user explicitly objected to unrequested ranking explanations and rating-date notices on the Hotlist screen and asked to remove them.
+
+**How to apply:** Do not add formula explanations, time-decay details or repeated technical caveats to this screen without being asked. Keep functional headings, ratings and counts.
+
 Be proactive about getting the web app’s fundamentals right before building mobile.
 
 **Why:** The user stopped bringing in beta users due to basic issues and explicitly asked to prioritize fundamentals before mobile.

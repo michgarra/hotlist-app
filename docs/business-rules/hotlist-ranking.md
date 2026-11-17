@@ -115,8 +115,13 @@ ratings merely because recency tracking is being introduced.
 Legacy ratings with unknown dates remain in the displayed average and all-time
 rater count but contribute zero recency weight. Do not backfill their dates
 with the deployment time, add date or watched date. If all rating dates for a
-title are unknown, label that fact and give no recency boost. With no dated
-ratings, use the documented quality tie-breaker and explain this fallback.
+title are unknown, give no recency boost. With no dated ratings, use the
+documented quality tie-breaker.
+
+Keep ranking rationale, decay parameters and historical-date caveats in this
+business-rules folder, not on the user-facing Hotlist screen. Do not add
+explanatory paragraphs or repeated per-title rating-date notices without the
+owner's request. Retain useful section headings, average ratings and counts.
 
 The displayed arithmetic average remains separate from the recency-weighted
 ranking score.
