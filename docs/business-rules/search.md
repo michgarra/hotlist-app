@@ -35,6 +35,25 @@
   metadata has not detected its next season.
 - A new catalog title should use the existing add-details flow.
 
+## My List priority actions
+
+- Selecting **Hot** or **Watch Soon** moves that title to the top of the
+  member's My List, including when selected from a search result.
+- This changes the saved list order, not just the visible search results.
+  Clearing search, reopening the list or refreshing must retain the position.
+- The most recently prioritised title goes first, regardless of whether the
+  chosen tag is Hot or Watch Soon. This is not a request to group all Hot
+  titles above all Watch Soon titles.
+- Preserve the relative order of the other titles and keep manual drag
+  reordering available.
+- Do not require the member to scroll through a long list and manually drag
+  the title after selecting its priority tag.
+- Personal Hot/Watch Soon priority is separate from the community Hotlist
+  ranking; this action must not change the community ranking rules.
+
+This priority behaviour is an agreed requirement from the walkthrough, not
+confirmation that it has been implemented.
+
 ## Details to settle during the search walkthrough
 
 - How choosing among actors with the same or similar name should work.

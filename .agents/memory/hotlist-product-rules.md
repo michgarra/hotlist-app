@@ -15,6 +15,12 @@ Use `docs/business-rules/search.md` for the user-defined unified-search behaviou
 
 **How to apply:** Treat discovery and existing-list lookup as one search experience. Do not assume that a working Add Title endpoint resolves the separate main-search problem.
 
+Selecting Hot or Watch Soon must move the title to the top of My List, including from search.
+
+**Why:** The user currently has to locate the title again in a long list and drag it upward after choosing a priority tag.
+
+**How to apply:** Follow the saved-order requirements in the search business rules. Keep this personal ordering separate from community Hotlist ranking.
+
 Use `docs/business-rules/series-and-new-seasons.md` for the series-lifecycle requirements.
 
 **Why:** The user wants weekly metadata refresh, new-season announcements with a date when known, an action to track that season, and a message when it starts airing. If an announcement is missed, they want to search, find the series marked Watched, move it back to My List and manually enter the date in details.
