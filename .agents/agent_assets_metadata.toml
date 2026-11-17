@@ -4,6 +4,22 @@ generated = []
 [[outputs]]
 id = "ZQtzGan5Krbmnl9zsRRqx"
 uri = "file://hotlist-updates.html"
-type = "unspecified"
+type = "html"
 title = "Hotlist — What's New"
 description = "Apple-style feature summary panel for sharing. July 2026 session release."
+logical_id = "593531fb-0e58-4036-88dd-bdefd879d065"
+content_type = "text/html"
+
+[[outputs]]
+id = "AAVf-PXoujyzblQh15Qjo"
+uri = "file://generated-artifacts/hotlist-session-updates.jpg"
+type = "image"
+title = "Hotlist — session update card"
+description = "Ready to save and send by SMS. Sharing is marked as awaiting an iPhone retest; no Continue button."
+logical_id = "fc2f120a-5d6e-4a9c-9554-11e3f0e6d9f2"
+content_hash = "sha256:dcd113b082f5c24d51f832e09f14904104c225bdf6bd1d4f4288b8d4a50ff9ef"
+size = 62918
+mtime_ms = 1794903983654
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:9535a4c1-8865-43e7-a15b-9b0808e3a1c7/fc2f120a-5d6e-4a9c-9554-11e3f0e6d9f2/dec31374-0d06-418f-bb4f-34dc2907e6e4"
+storage_version_token = "1794904007110342"
+content_type = "image/jpeg"

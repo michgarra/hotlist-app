@@ -16,7 +16,7 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 24px 16px;
+    padding: 12px 16px;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -33,7 +33,7 @@
 
   /* Header */
   .header {
-    padding: 20px 20px 14px;
+    padding: 10px 20px 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -41,12 +41,12 @@
     border-bottom: 0.5px solid rgba(255,255,255,0.08);
   }
   .app-icon {
-    width: 54px; height: 54px;
+    width: 38px; height: 38px;
     background: #000;
     border-radius: 15px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 30px;
-    margin-bottom: 8px;
+    font-size: 23px;
+    margin-bottom: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
   .eyebrow {
@@ -77,7 +77,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px;
+    padding: 4px 16px;
     position: relative;
   }
   .row + .row::before {
@@ -119,24 +119,48 @@
     <div class="app-icon">🔥</div>
     <div class="eyebrow">What's New</div>
     <div class="title">Hotlist Updates</div>
-    <div class="subtitle">One-link title sharing — plus nine more updates.</div>
+    <div class="subtitle">Search, returning series and list improvements.<br>Sharing awaits an iPhone retest.</div>
   </div>
 
   <div class="features">
 
     <div class="row">
+      <div class="icon" style="background:rgba(10,132,255,0.15);">🔍</div>
+      <div class="copy">
+        <div class="name">Search titles and actors across TMDB</div>
+        <div class="desc">Search from any tab. See My List, Watched and Hotlist labels.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="icon" style="background:rgba(191,90,242,0.15);">📺</div>
+      <div class="copy">
+        <div class="name">Track a returning series</div>
+        <div class="desc">Move it from Watched to My List; keep its history and add a season date.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="icon" style="background:rgba(255,159,10,0.18);">🔔</div>
+      <div class="copy">
+        <div class="name">Season updates stay out of the way</div>
+        <div class="desc">Expand them in Watched. Moving a series clears its current notice.</div>
+      </div>
+    </div>
+
+    <div class="row">
       <div class="icon" style="background:rgba(10,132,255,0.15);">🔗</div>
       <div class="copy">
-        <div class="name">Share a title as one rich link</div>
-        <div class="desc">Send one link; Messages can show the title and poster in a single preview.</div>
+        <div class="name">Title sharing — awaiting iPhone retest</div>
+        <div class="desc">Link-opening fix prepared; Messages preview still needs a fresh test.</div>
       </div>
     </div>
 
     <div class="row">
       <div class="icon" style="background:rgba(48,209,88,0.15);">📈</div>
       <div class="copy">
-        <div class="name">Hotlist rankings update instantly</div>
-        <div class="desc">Rate a title, mark it watched, or add one — the Hotlist chart now reflects it straight away.</div>
+        <div class="name">Hotlist ranks by member ratings</div>
+        <div class="desc">Community ratings drive the chart, with support and recency considered.</div>
       </div>
     </div>
 
@@ -144,15 +168,15 @@
       <div class="icon" style="background:rgba(255,106,0,0.18);">🔥</div>
       <div class="copy">
         <div class="name">See who shared a title with you</div>
-        <div class="desc">Shared titles show the sender's name and save it as "Recommended by" on your card.</div>
+        <div class="desc">The sender's name is saved as "Recommended by" when you add a shared title.</div>
       </div>
     </div>
 
     <div class="row">
       <div class="icon" style="background:rgba(255,159,10,0.18);">🟠</div>
       <div class="copy">
-        <div class="name">New tag: Watch Soon</div>
-        <div class="desc">Sits between Hot and Watching — flag the titles you're about to start. Filter by it too.</div>
+        <div class="name">Hot and Watch Soon move titles up</div>
+        <div class="desc">Choose either tag, including from search, to move a title to the top.</div>
       </div>
     </div>
 
@@ -160,15 +184,15 @@
       <div class="icon" style="background:rgba(48,209,88,0.15);">🕐</div>
       <div class="copy">
         <div class="name">Watched list is now in order</div>
-        <div class="desc">Most recently watched sits at the top — ordered by when you tapped Watched, not when you added it.</div>
+        <div class="desc">Latest at the top, ordered by when you tapped Watched.</div>
       </div>
     </div>
 
     <div class="row">
       <div class="icon" style="background:rgba(10,132,255,0.15);">👥</div>
       <div class="copy">
-        <div class="name">Watch With remembers names</div>
-        <div class="desc">Start typing a name and it suggests people you've watched with before. No more duplicates either.</div>
+        <div class="name">Friends and Watch With reuse names</div>
+        <div class="desc">Get name suggestions; review and combine duplicates in My Friends.</div>
       </div>
     </div>
 
@@ -176,23 +200,23 @@
       <div class="icon" style="background:rgba(191,90,242,0.15);">📈</div>
       <div class="copy">
         <div class="name">Hotlist Chart now stays fresh</div>
-        <div class="desc">Rankings update as people add titles — no more stale chart that never changed.</div>
+        <div class="desc">The chart refreshes as member activity changes, without reopening the app.</div>
       </div>
     </div>
 
     <div class="row">
       <div class="icon" style="background:rgba(255,159,10,0.15);">🔗</div>
       <div class="copy">
-        <div class="name">Sharing from WhatsApp just got easier</div>
-        <div class="desc">A banner guides you to open shared links in Safari — where you're already logged in.</div>
+        <div class="name">Open WhatsApp shares in Safari</div>
+        <div class="desc">A banner helps you open the link where your existing session may be available.</div>
       </div>
     </div>
 
     <div class="row">
       <div class="icon" style="background:rgba(48,209,88,0.15);">⏳</div>
       <div class="copy">
-        <div class="name">Stay logged in for 90 days</div>
-        <div class="desc">No more getting signed out. Sessions now last three months.</div>
+        <div class="name">Fewer repeated sign-in requests</div>
+        <div class="desc">Session renewal improved; lasting sign-in still needs checking on iPhone.</div>
       </div>
     </div>
 
@@ -200,7 +224,7 @@
       <div class="icon" style="background:rgba(191,90,242,0.15);">☑️</div>
       <div class="copy">
         <div class="name">Bulk select</div>
-        <div class="desc">Tap the checkbox icon to select multiple titles, then archive or delete at once.</div>
+        <div class="desc">Use the checkbox icon to archive or delete several titles together.</div>
       </div>
     </div>
 

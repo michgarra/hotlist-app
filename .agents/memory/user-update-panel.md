@@ -15,7 +15,7 @@ Stored at `client/public/whats-new-template.html`. Key design tokens:
 - Card max-width: 360px, border-radius: 26px
 - Header: app icon (64px, black bg, 15px radius) → "WHAT'S NEW" eyebrow (11px, uppercase, orange) → title (22px bold) → subtitle (13px, muted)
 - Feature rows: 38px emoji icon badge + name (14px semibold white) + desc (12px muted), separated by 0.5px hairlines
-- Footer: full-width orange button ("Continue"), border-radius 12px
+- No Continue button: this is a screenshot for the user to send, not an in-app onboarding flow.
 - Must fit entirely in one phone screenshot — no scrolling
 
 ## What qualifies for inclusion
@@ -28,6 +28,7 @@ Backend-only fixes, schema migrations, dependency bumps with no visible effect, 
 - Update `client/public/hotlist-updates.html` (overwrite with latest session's changes)
 - Tell the user the panel is ready
 - Remind them the URL is `/hotlist-updates.html` on their published app (e.g. `yourapp.replit.app/hotlist-updates.html`)
+- Supply a downloadable screenshot when closing a session so they can send it without republishing just to view the card. Clearly distinguish awaiting device tests from verified improvements.
 
 **Why:** User explicitly requested this as a standing business rule on 2026-08-05.
 
