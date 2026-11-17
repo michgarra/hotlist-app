@@ -33,6 +33,12 @@ Keep season updates collapsed on Watched, never above My List, the community cha
 
 **How to apply:** Keep alerts separate from discovery results. Do not automatically expand them or obstruct the main list/search workflow.
 
+Moving a series to My List must clear the announcement or already-airing alert acted upon.
+
+**Why:** The user reported that the same series remained in season updates after moving it to My List.
+
+**How to apply:** Treat the move as acknowledgement, not a requirement to also press dismiss. Preserve eligibility for a genuinely later premiere alert.
+
 Do not promise unattended weekly season checks from an autoscaling web-service timer.
 
 **Why:** The server can sleep; automatic discovery on opening Hotlist is not the same as a guaranteed scheduled background job. TMDB premiere dates also do not prove Australian streaming availability.

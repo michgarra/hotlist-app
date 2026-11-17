@@ -81,7 +81,7 @@ export const recommendations = pgTable("recommendations", {
   createdAt: timestamp("created_at").defaultNow(),
   watchedAt: timestamp("watched_at"),
   nextSeasonDate: text("next_season_date"),
-  seriesHistory: jsonb("series_history").$type<{ watchedAt: string; seasons: number | null; rating: number | null; review: string | null }[]>().notNull().default([]),
+  seriesHistory: jsonb("series_history").$type<{ watchedAt: string; seasons: number | null; rating: number | null; review: string | null; alertsAcknowledgedAt?: string }[]>().notNull().default([]),
   dismissedSeriesAlerts: text("dismissed_series_alerts").array().notNull().default(sql`'{}'::text[]`),
 }, (table) => [
   index("recommendations_user_id_idx").on(table.userId),

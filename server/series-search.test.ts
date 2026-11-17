@@ -55,9 +55,11 @@ test("returning a series preserves history, saved fields, identity and persisten
     assert.equal(returned.hotRating, watched.hotRating);
     assert.equal(returned.watchWith, watched.watchWith);
     assert.equal(returned.watchedAt?.getTime(), oldDate.getTime());
-    assert.deepEqual(returned.seriesHistory, [{
+    const { alertsAcknowledgedAt, ...previousViewing } = returned.seriesHistory[0];
+    assert.ok(alertsAcknowledgedAt);
+    assert.deepEqual(previousViewing, {
       watchedAt: oldDate.toISOString(), seasons: 1, rating: 4.5, review: "Loved the first season",
-    }]);
+    });
     let order = (await storage.getRecommendations(userId)).map(i => i.id);
     assert.deepEqual(order, [watched.id, middle.id, first.id]);
     await storage.updateRecommendation(first.id, { status: "Watch Soon" });
@@ -165,6 +167,52 @@ test("season alerts and dismissals remain private and survive reloads without du
   } finally {
     await db.delete(recommendations).where(eq(recommendations.userId, userId));
     await db.delete(recommendations).where(eq(recommendations.userId, otherUser));
+    await db.delete(seriesCatalog).where(eq(seriesCatalog.tmdbId, tmdbId));
+  }
+});
+
+test("moving to My List clears acted-on alerts, but a later premiere is a new event", () => {
+  const item = {
+    id: 88, title: "Tracked series", status: "Want to Watch", lastKnownSeasons: 1, seasons: 1,
+    seriesHistory: [{ watchedAt: "2025-01-01T00:00:00Z", seasons: 1, rating: 4, review: null,
+      alertsAcknowledgedAt: "2026-11-17T00:00:00Z" }],
+    nextSeasonDate: null, dismissedSeriesAlerts: [],
+  };
+  assert.deepEqual(alertsForSeries(item, [{ season: 2, date: null }], "2026-11-17"), []);
+  assert.deepEqual(alertsForSeries(item, [{ season: 2, date: "2026-12-01" }], "2026-11-17"), []);
+  assert.deepEqual(alertsForSeries(item, [{ season: 2, date: "2026-11-16" }], "2026-11-17"), []);
+  assert.equal(alertsForSeries(item, [{ season: 2, date: "2026-11-18" }], "2026-11-18")[0].kind, "airing");
+  assert.deepEqual(alertsForSeries({ ...item, status: "Watching" }, [{ season: 2, date: "2026-11-16" }], "2026-11-17"), []);
+});
+
+test("alert acknowledgement also repairs already-returned series without changing viewing history", async () => {
+  const userId = `acknowledgement-check-${randomUUID()}`;
+  const tmdbId = -8675311;
+  try {
+    await db.insert(seriesCatalog).values({ tmdbId, seasons: [{ season: 2, date: "2020-01-01" }] });
+    const item = await storage.createRecommendation({
+      userId, title: "Already returned", type: "TV Show", tmdbId, status: "Watched",
+      lastKnownSeasons: 1, hotRating: 4.5, notes: "Keep this", watchReview: "Original review",
+    });
+    assert.equal((await getSeriesAlerts(userId)).length, 1);
+    const moved = await storage.updateRecommendation(item.id, { status: "Want to Watch" });
+    assert.equal((await getSeriesAlerts(userId)).length, 0);
+    assert.ok(moved.seriesHistory[0].alertsAcknowledgedAt);
+    // Reproduce a title moved using the earlier version, with no acknowledgement.
+    const { alertsAcknowledgedAt: _, ...oldHistory } = moved.seriesHistory[0];
+    await db.update(recommendations).set({ seriesHistory: [oldHistory] }).where(eq(recommendations.id, item.id));
+    assert.equal((await getSeriesAlerts(userId)).length, 0);
+    const repaired = await storage.getRecommendation(item.id);
+    assert.ok(repaired?.seriesHistory[0].alertsAcknowledgedAt);
+    const { alertsAcknowledgedAt: firstAcknowledgement, ...repairedHistory } = repaired!.seriesHistory[0];
+    assert.deepEqual(repairedHistory, oldHistory);
+    assert.equal(repaired?.notes, "Keep this");
+    assert.equal(repaired?.hotRating, 4.5);
+    assert.equal(repaired?.watchReview, "Original review");
+    await getSeriesAlerts(userId);
+    assert.equal((await storage.getRecommendation(item.id))?.seriesHistory[0].alertsAcknowledgedAt, firstAcknowledgement);
+  } finally {
+    await db.delete(recommendations).where(eq(recommendations.userId, userId));
     await db.delete(seriesCatalog).where(eq(seriesCatalog.tmdbId, tmdbId));
   }
 });

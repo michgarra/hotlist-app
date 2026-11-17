@@ -92,6 +92,11 @@ Implemented in development, pending republish:
   event identities and durable, account-scoped dismissal. A date change does
   not create another announcement. An airing event is distinct from its
   announcement.
+- Moving a watched series back to My List acknowledges its current alerts.
+  Do not continue showing its announcement or an already-airing notice after
+  that action. A premiere occurring after acknowledgement can still generate
+  a new airing alert. Titles moved using the earlier version are acknowledged
+  on their next alert check, preserving their original viewing history.
 - Keep season alerts out of My List, the community Hotlist and all search
   results. Offer a collapsed **Season updates** control on Watched only;
   expand alerts only when the member requests them, with bounded scrolling.

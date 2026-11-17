@@ -36,6 +36,12 @@ export function alertsForSeries(
     const confirmed = seasons.find(metadata => metadata.season === s.season)?.date;
     const kind = confirmed && confirmed <= today && verifiedOn >= confirmed
       ? "airing" as const : "announced" as const;
+    if (item.status !== "Watched") {
+      // Returning this title to My List has already acted on its announcement.
+      // Only a premiere AFTER that acknowledgement is a new actionable event.
+      const acknowledgedAt = item.seriesHistory.at(-1)?.alertsAcknowledgedAt;
+      if (kind === "announced" || !acknowledgedAt || confirmed! <= todayInAustralia(new Date(acknowledgedAt))) return [];
+    }
     const id = `${item.id}:${s.season}:${kind}`;
     if (item.dismissedSeriesAlerts.includes(id)) return [];
     return [{ id, recommendationId: item.id, title: item.title, kind, season: s.season, date }];
@@ -94,7 +100,22 @@ export async function getSeriesAlerts(userId: string): Promise<SeriesAlert[]> {
     }));
   }
   const alerts: SeriesAlert[] = [];
-  for (const item of items) {
+  for (let item of items) {
+    if (item.status !== "Watched" && item.seriesHistory.length &&
+      !item.seriesHistory.at(-1)?.alertsAcknowledgedAt) {
+      // Compatibility for titles returned before automatic acknowledgement
+      // existed. Record when alerts were cleared, NOT an invented move date.
+      // Edit the current JSON value atomically to preserve concurrent edits.
+      const [acknowledged] = await db.update(recommendations).set({
+        seriesHistory: sql`jsonb_set(${recommendations.seriesHistory},
+          ARRAY[(jsonb_array_length(${recommendations.seriesHistory}) - 1)::text, 'alertsAcknowledgedAt'],
+          to_jsonb(${new Date().toISOString()}::text))`,
+      }).where(and(eq(recommendations.id, item.id), eq(recommendations.userId, userId),
+        sql`${recommendations.status} <> 'Watched'`,
+        sql`jsonb_array_length(${recommendations.seriesHistory}) > 0`,
+        sql`(${recommendations.seriesHistory} -> -1 ->> 'alertsAcknowledgedAt') IS NULL`)).returning();
+      if (acknowledged) item = acknowledged;
+    }
     const [cached] = item.tmdbId ? await db.select().from(seriesCatalog).where(eq(seriesCatalog.tmdbId, item.tmdbId)) : [];
     if (item.tmdbId && failed.has(item.tmdbId) && !cached) {
       throw new Error("Season announcements could not be checked. Please try again.");

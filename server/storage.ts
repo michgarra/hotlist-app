@@ -140,6 +140,7 @@ export class DatabaseStorage implements IStorage {
           seasons: latest.lastKnownSeasons ?? latest.seasons,
           rating: latest.hotRating,
           review: latest.watchReview,
+          alertsAcknowledgedAt: new Date().toISOString(),
         }];
       }
       if (updates.status === "Interested" || updates.status === "Watch Soon" ||
