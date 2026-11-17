@@ -14,6 +14,16 @@ function getUserId(req: any): string {
   return req.user?.claims?.sub;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[char]!);
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -49,6 +59,62 @@ export async function registerRoutes(
       tmdbId: item.tmdbId,
       sharerName: sharerProfile?.name ?? null,
     });
+  });
+
+  // Serve title-specific metadata to link-preview crawlers while the SPA still
+  // handles the actual shared-title page in the browser.
+  app.get("/shared/:id", async (req, res, next) => {
+    try {
+      const item = await storage.getRecommendation(Number(req.params.id));
+      if (!item) return next();
+
+      const host = `${req.protocol}://${req.get("host")}`;
+      const pageUrl = `${host}/shared/${item.id}`;
+      const year = item.releaseDate?.slice(0, 4);
+      const title = `${item.title}${year ? ` (${year})` : ""} — Hotlist`;
+      const description = [
+        item.type,
+        item.genre,
+        item.platform ? `Watch on ${item.platform}` : null,
+        "Shared with you on Hotlist.",
+      ].filter(Boolean).join(" · ");
+      const image = item.posterUrl || `${host}/icon-512.png`;
+
+      const htmlPath = process.env.NODE_ENV === "production"
+        ? path.resolve(import.meta.dirname, "public", "index.html")
+        : path.resolve(import.meta.dirname, "..", "client", "index.html");
+      let html = fs.readFileSync(htmlPath, "utf-8");
+
+      // Remove the generic app metadata so crawlers don't choose it over the
+      // title-specific values inserted below.
+      html = html
+        .replace(/<title>[\s\S]*?<\/title>/i, "")
+        .replace(/<meta\s+name="description"[^>]*\/?>/i, "")
+        .replace(/<meta\s+property="og:[^"]+"[^>]*\/?>/gi, "")
+        .replace(/<meta\s+name="twitter:[^"]+"[^>]*\/?>/gi, "");
+
+      const escapedTitle = escapeHtml(title);
+      const escapedDescription = escapeHtml(description);
+      const escapedUrl = escapeHtml(pageUrl);
+      const escapedImage = escapeHtml(image);
+      const metadata = `
+    <title>${escapedTitle}</title>
+    <meta name="description" content="${escapedDescription}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Hotlist" />
+    <meta property="og:title" content="${escapedTitle}" />
+    <meta property="og:description" content="${escapedDescription}" />
+    <meta property="og:url" content="${escapedUrl}" />
+    <meta property="og:image" content="${escapedImage}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapedTitle}" />
+    <meta name="twitter:description" content="${escapedDescription}" />
+    <meta name="twitter:image" content="${escapedImage}" />`;
+      html = html.replace("</head>", `${metadata}\n  </head>`);
+      res.set("Content-Type", "text/html").send(html);
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get("/api/hotlist", isAuthenticated, async (req, res) => {

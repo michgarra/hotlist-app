@@ -30,3 +30,10 @@ Backend-only fixes, schema migrations, dependency bumps with no visible effect, 
 - Remind them the URL is `/hotlist-updates.html` on their published app (e.g. `yourapp.replit.app/hotlist-updates.html`)
 
 **Why:** User explicitly requested this as a standing business rule on 2026-08-05.
+
+## Preserve update content
+Do not remove existing feature rows when making a separate panel change, such as removing the decorative Continue button. Keep prior updates unless the user explicitly asks to prune or replace them.
+
+**Why:** The user objected when update rows were removed while only asking for the Continue button to be removed.
+
+**How to apply:** Treat panel content and panel controls as separate concerns. Preserve the rows, then adjust spacing or copy if needed to fit the screenshot.

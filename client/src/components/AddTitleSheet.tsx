@@ -94,7 +94,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
         r.watchWith.split(",").map((n: string) => n.trim()).filter(Boolean).forEach((n: string) => names.add(n));
       }
     });
-    return [...names].sort((a, b) => a.localeCompare(b));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [allRecommendations]);
 
   // Suggestions: names that start with current input and aren't already selected

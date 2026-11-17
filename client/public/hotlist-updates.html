@@ -33,7 +33,7 @@
 
   /* Header */
   .header {
-    padding: 28px 24px 20px;
+    padding: 20px 20px 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -41,12 +41,12 @@
     border-bottom: 0.5px solid rgba(255,255,255,0.08);
   }
   .app-icon {
-    width: 64px; height: 64px;
+    width: 54px; height: 54px;
     background: #000;
     border-radius: 15px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 34px;
-    margin-bottom: 12px;
+    font-size: 30px;
+    margin-bottom: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
   .eyebrow {
@@ -58,56 +58,56 @@
     margin-bottom: 4px;
   }
   .title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: #f5f5f7;
     letter-spacing: -0.02em;
   }
   .subtitle {
-    margin-top: 5px;
-    font-size: 13px;
+    margin-top: 4px;
+    font-size: 12px;
     color: #8e8e93;
     line-height: 1.4;
   }
 
   /* Features */
-  .features { padding: 4px 0; }
+  .features { padding: 2px 0; }
 
   .row {
     display: flex;
     align-items: center;
-    gap: 13px;
-    padding: 13px 20px;
+    gap: 10px;
+    padding: 8px 16px;
     position: relative;
   }
   .row + .row::before {
     content: '';
     position: absolute;
-    top: 0; left: 60px; right: 20px;
+    top: 0; left: 52px; right: 16px;
     height: 0.5px;
     background: rgba(255,255,255,0.07);
   }
 
   .icon {
     flex-shrink: 0;
-    width: 38px; height: 38px;
+    width: 32px; height: 32px;
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 19px;
+    font-size: 16px;
   }
 
   .copy { flex: 1; }
   .name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #f5f5f7;
     letter-spacing: -0.01em;
     margin-bottom: 2px;
   }
   .desc {
-    font-size: 12px;
+    font-size: 11px;
     color: #8e8e93;
-    line-height: 1.4;
+    line-height: 1.25;
   }
 
 </style>
@@ -119,10 +119,18 @@
     <div class="app-icon">🔥</div>
     <div class="eyebrow">What's New</div>
     <div class="title">Hotlist Updates</div>
-    <div class="subtitle">Hotlist rankings live, see who shared,<br>Watch Soon — and six more.</div>
+    <div class="subtitle">One-link title sharing — plus nine more updates.</div>
   </div>
 
   <div class="features">
+
+    <div class="row">
+      <div class="icon" style="background:rgba(10,132,255,0.15);">🔗</div>
+      <div class="copy">
+        <div class="name">Share a title as one rich link</div>
+        <div class="desc">Send one link; Messages can show the title and poster in a single preview.</div>
+      </div>
+    </div>
 
     <div class="row">
       <div class="icon" style="background:rgba(48,209,88,0.15);">📈</div>

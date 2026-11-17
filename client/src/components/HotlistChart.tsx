@@ -57,7 +57,9 @@ function entryToRecommendation(entry: HotlistEntry): Recommendation {
     watchTags: null,
     watchReview: null,
     sortOrder: null,
+    archived: false,
     createdAt: null,
+    watchedAt: null,
   };
 }
 

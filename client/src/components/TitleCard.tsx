@@ -89,13 +89,13 @@ export function TitleCard({ item, onStatusChange, onDelete, onArchive, onOpenDet
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}/shared/${item.id}`;
-    const platform = firstPlatform(item.platform);
-    // Keep URL out of text — navigator.share appends it separately, preventing double link preview in iMessage
-    const text = `🔥 "${item.title}"${item.releaseDate ? ` (${item.releaseDate.substring(0, 4)})` : ''}${platform ? ` — on ${platform}` : ''} — I added this to my Hotlist!`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + "\n\n" + shareUrl)}`;
+    // Share one URL only. Its server-rendered Open Graph tags provide the title,
+    // poster, and description for a single rich preview in Messages.
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareUrl)}`;
     if (navigator.share) {
-      navigator.share({ title: item.title, text, url: shareUrl }).catch(() => {
-        window.open(whatsappUrl, '_blank');
+      navigator.share({ url: shareUrl }).catch((error: DOMException) => {
+        // Canceling the native share sheet is intentional; don't open WhatsApp.
+        if (error.name !== "AbortError") window.open(whatsappUrl, "_blank");
       });
     } else {
       window.open(whatsappUrl, '_blank');
