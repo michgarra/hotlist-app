@@ -1,3 +1,4 @@
 - [User update panel convention](user-update-panel.md) — after any UX-impacting session, produce /hotlist-updates.html using the Apple-style template
 - [Mobile scope and sign-in priorities](mobile-scope.md) — keep Expo planning separate; resolve current web sharing and repeated sign-in friction first.
 - [Hotlist product priorities](hotlist-product-rules.md) — user ratings define the aggregated ranking; verify web fundamentals before mobile.
+- [Sharing verification](share-verification.md) — check the compiled production server; native message previews need a fresh device test.

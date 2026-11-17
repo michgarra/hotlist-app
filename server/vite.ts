@@ -29,6 +29,7 @@ export async function setupVite(server: Server, app: Express) {
     appType: "custom",
   });
 
+  app.locals.transformClientHtml = (url: string, html: string) => vite.transformIndexHtml(url, html);
   app.use(vite.middlewares);
 
   app.use("/{*path}", async (req, res, next) => {

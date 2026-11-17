@@ -10,22 +10,11 @@ import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
 import { smartSearch, getTmdbDetails, getTmdbSeasonCount } from "./tmdb";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
-import path from "path";
-import fs from "fs";
+import { renderShareHtml } from "./share-html";
 import { getSeriesAlerts, dismissSeriesAlert } from "./series";
 
 function getUserId(req: any): string {
   return req.user?.claims?.sub;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[char]!);
 }
 
 export async function registerRoutes(
@@ -98,37 +87,11 @@ export async function registerRoutes(
       ].filter(Boolean).join(" · ");
       const image = item.posterUrl || `${host}/icon-512.png`;
 
-      const htmlPath = process.env.NODE_ENV === "production"
-        ? path.resolve(import.meta.dirname, "public", "index.html")
-        : path.resolve(import.meta.dirname, "..", "client", "index.html");
-      let html = fs.readFileSync(htmlPath, "utf-8");
-
-      // Remove the generic app metadata so crawlers don't choose it over the
-      // title-specific values inserted below.
-      html = html
-        .replace(/<title>[\s\S]*?<\/title>/i, "")
-        .replace(/<meta\s+name="description"[^>]*\/?>/i, "")
-        .replace(/<meta\s+property="og:[^"]+"[^>]*\/?>/gi, "")
-        .replace(/<meta\s+name="twitter:[^"]+"[^>]*\/?>/gi, "");
-
-      const escapedTitle = escapeHtml(title);
-      const escapedDescription = escapeHtml(description);
-      const escapedUrl = escapeHtml(pageUrl);
-      const escapedImage = escapeHtml(image);
-      const metadata = `
-    <title>${escapedTitle}</title>
-    <meta name="description" content="${escapedDescription}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Hotlist" />
-    <meta property="og:title" content="${escapedTitle}" />
-    <meta property="og:description" content="${escapedDescription}" />
-    <meta property="og:url" content="${escapedUrl}" />
-    <meta property="og:image" content="${escapedImage}" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapedTitle}" />
-    <meta name="twitter:description" content="${escapedDescription}" />
-    <meta name="twitter:image" content="${escapedImage}" />`;
-      html = html.replace("</head>", `${metadata}\n  </head>`);
+      const html = await renderShareHtml(
+        { title, description, url: pageUrl, image },
+        req.originalUrl,
+        app.locals.transformClientHtml,
+      );
       res.set("Content-Type", "text/html").send(html);
     } catch (error) {
       next(error);
@@ -422,26 +385,14 @@ export async function registerRoutes(
       const ogTitle = `${owner.name}'s Hotlist 🔥`;
       const ogDesc = `${count} title${count !== 1 ? "s" : ""} to watch — see what ${owner.name} is recommending on Hotlist.`;
 
-      const htmlPath = process.env.NODE_ENV === "production"
-        ? path.resolve(import.meta.dirname, "public", "index.html")
-        : path.resolve(import.meta.dirname, "..", "client", "index.html");
-
-      let html = fs.readFileSync(htmlPath, "utf-8");
-      const ogTags = `
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Hotlist" />
-    <meta property="og:title" content="${ogTitle}" />
-    <meta property="og:description" content="${ogDesc}" />
-    <meta property="og:url" content="${pageUrl}" />
-    <meta property="og:image" content="${host}/icon-512.png" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="${ogTitle}" />
-    <meta name="twitter:description" content="${ogDesc}" />
-    <meta name="twitter:image" content="${host}/icon-512.png" />`;
-      html = html.replace("</head>", `${ogTags}\n  </head>`);
+      const html = await renderShareHtml(
+        { title: ogTitle, description: ogDesc, url: pageUrl, image: `${host}/icon-512.png` },
+        req.originalUrl,
+        app.locals.transformClientHtml,
+      );
       res.set("Content-Type", "text/html").send(html);
-    } catch {
-      next();
+    } catch (error) {
+      next(error);
     }
   });
 
