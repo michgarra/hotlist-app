@@ -3,20 +3,31 @@ import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
 import session from "express-session";
-import type { Express, RequestHandler } from "express";
+import type { Express } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 import { storage } from "../../storage";
+import { pool } from "../../db";
+import { PgSessionRepository } from "../../auth/pg-session-repository";
+import {
+  applyTokenResponse,
+  createSessionRenewer,
+} from "../../auth/session-renewal";
+import { createAuthenticatedHandler } from "../../auth/require-session";
 
 const getOidcConfig = memoize(
   async () => {
     return await client.discovery(
       new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
+      process.env.REPL_ID!,
+      undefined,
+      undefined,
+      { timeout: 10 },
     );
   },
-  { maxAge: 3600 * 1000 }
+  // Do not cache a rejected discovery promise for an hour after an outage.
+  { maxAge: 3600 * 1000, promise: true }
 );
 
 export function getSession() {
@@ -25,7 +36,7 @@ export function getSession() {
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: sessionTtl / 1000, // connect-pg-simple expects seconds, cookies use ms
     tableName: "sessions",
   });
   return session({
@@ -34,6 +45,7 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
       httpOnly: true,
       secure: true,
@@ -47,10 +59,7 @@ function updateUserSession(
   user: any,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+  Object.assign(user, applyTokenResponse(user, tokens));
 }
 
 async function upsertUser(claims: any) {
@@ -146,38 +155,11 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
+const renewSession = createSessionRenewer({
+  repository: new PgSessionRepository(pool),
+  refresh: async (token) => client.refreshTokenGrant(await getOidcConfig(), token),
+  // Fixed event names only: no emails, tokens, session IDs or provider payloads.
+  log: (event) => console.info(`[auth] ${event}`),
+});
 
-  if (!req.isAuthenticated() || !user?.expires_at) {
-    console.log(`[auth] isAuthenticated=false sid=${(req as any).sessionID?.slice(0,8)} isAuth=${req.isAuthenticated()} hasUser=${!!user} hasExpires=${!!user?.expires_at}`);
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
-  }
-
-  console.log(`[auth] token expired for ${user?.claims?.email}, attempting refresh`);
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    // Persist the refreshed token back to the session store so it survives the next request
-    await new Promise<void>((resolve, reject) =>
-      req.session.save((err) => (err ? reject(err) : resolve()))
-    );
-    return next();
-  } catch (error) {
-    console.log(`[auth] refresh failed:`, error);
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-};
+export const isAuthenticated = createAuthenticatedHandler(renewSession);

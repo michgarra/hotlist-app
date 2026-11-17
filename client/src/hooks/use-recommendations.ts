@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildUrl } from "@shared/routes";
 import type { InsertRecommendation, UpdateRecommendationRequest } from "@shared/schema";
-import { apiRequest, dispatchSessionExpired } from "@/lib/queryClient";
+import { apiRequest, dispatchSessionExpired, throwIfResNotOk } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
 export function useRecommendations() {
@@ -25,7 +25,7 @@ export function useCreateRecommendation() {
         const errData = await res.json();
         throw new Error(errData.message || "This title is already in your list");
       }
-      if (!res.ok) throw new Error("Failed to create");
+      await throwIfResNotOk(res);
       return res.json();
     },
     onSuccess: () => {
@@ -45,7 +45,7 @@ export function useUpdateRecommendation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error("Failed to update");
+      await throwIfResNotOk(res);
       return res.json();
     },
     onSuccess: () => {
@@ -61,7 +61,7 @@ export function useDeleteRecommendation() {
     mutationFn: async (id: number) => {
       const url = buildUrl("/api/recommendations/:id", { id });
       const res = await fetch(url, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      await throwIfResNotOk(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
@@ -91,7 +91,7 @@ export function useCreateFriend() {
         const data = await res.json();
         return data.friend;
       }
-      if (!res.ok) throw new Error("Failed to add friend");
+      await throwIfResNotOk(res);
       return res.json();
     },
     onSuccess: () => {

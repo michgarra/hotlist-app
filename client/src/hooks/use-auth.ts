@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
+import { dispatchSessionExpired, queryClient, throwIfResNotOk } from "@/lib/queryClient";
+import { AuthServiceUnavailableError } from "@/lib/auth-events";
 
 type AuthUser = User & { isBeta: boolean };
 
@@ -27,10 +29,24 @@ function writeCachedUser(user: AuthUser | null) {
 
 async function fetchUser(): Promise<AuthUser | null> {
   const response = await fetch("/api/auth/user", { credentials: "include" });
-  if (response.status === 401) { writeCachedUser(null); return null; }
-  if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+  if (response.status === 401) {
+    const wasSignedIn = !!readCachedUser() || !!queryClient.getQueryData(["/api/auth/user"]);
+    writeCachedUser(null);
+    if (wasSignedIn) dispatchSessionExpired();
+    return null;
+  }
+  await throwIfResNotOk(response);
   const user = await response.json();
   writeCachedUser(user);
+  window.dispatchEvent(new CustomEvent("authSessionRestored"));
+  // Recover reads that failed during the same renewal outage. Do not replay
+  // mutations: users must explicitly retry writes to avoid duplicate actions.
+  void queryClient.refetchQueries({
+    type: "active",
+    predicate: query => query.queryKey[0] !== "/api/auth/user" &&
+      query.state.status === "error" &&
+      query.state.error instanceof AuthServiceUnavailableError,
+  });
   return user;
 }
 
@@ -45,8 +61,10 @@ export function useAuth() {
     queryKey: ["/api/auth/user"],
     queryFn: fetchUser,
     initialData: () => readCachedUser() ?? undefined,
-    retry: false,
+    retry: (failureCount, error) => error instanceof AuthServiceUnavailableError && failureCount < 1,
+    retryDelay: 10_000,
     staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const logoutMutation = useMutation({

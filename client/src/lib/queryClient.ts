@@ -1,11 +1,13 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { checkAuthUnavailable } from "./auth-events";
 
 export function dispatchSessionExpired() {
   window.dispatchEvent(new CustomEvent("sessionExpired"));
 }
 
-async function throwIfResNotOk(res: Response) {
+export async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    await checkAuthUnavailable(res);
     if (res.status === 401) {
       const url = res.url || "";
       if (!url.includes("/api/auth/user")) {
@@ -46,10 +48,6 @@ export const getQueryFn: <T>(options: {
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
-    }
-
-    if (res.status === 401 && !url.includes("/api/auth/user")) {
-      dispatchSessionExpired();
     }
 
     await throwIfResNotOk(res);

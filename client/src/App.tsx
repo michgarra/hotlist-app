@@ -44,7 +44,7 @@ function AuthenticatedApp() {
   const { user, logout, isBeta } = useAuth();
   const isLoggedIn = !!user;
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: retryProfile } = useQuery({
     queryKey: ["/api/profile"],
     retry: false,
     enabled: isLoggedIn && isBeta,
@@ -82,6 +82,17 @@ function AuthenticatedApp() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (profileError && !profile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <p>We couldn't load your profile. Your saved Hotlist is safe.</p>
+        <button className="text-primary underline" onClick={() => retryProfile()}>
+          Try again
+        </button>
       </div>
     );
   }
