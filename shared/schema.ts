@@ -59,6 +59,7 @@ export const recommendations = pgTable("recommendations", {
   status: text("status").notNull().default("Want to Watch"),
   notes: text("notes"),
   hotRating: real("hot_rating"),
+  hotRatedAt: timestamp("hot_rated_at", { withTimezone: true }),
   tmdbId: integer("tmdb_id"),
   posterUrl: text("poster_url"),
   imdbRating: real("imdb_rating"),
@@ -96,6 +97,9 @@ export const insertRecommendationSchema = createInsertSchema(recommendations).om
   id: true,
   userId: true,
   createdAt: true,
+  hotRatedAt: true,
+}).extend({
+  hotRating: z.number().min(0).max(5).nullable().optional(),
 });
 
 export type Recommendation = typeof recommendations.$inferSelect;

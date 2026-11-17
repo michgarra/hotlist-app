@@ -16,6 +16,7 @@ import { eq, desc, ilike, and, asc, sql } from "drizzle-orm";
 import { normalizeWatchWith, resolvePerson } from "../shared/people";
 import { pool } from "./db";
 import { PeopleRepository } from "./people";
+import { ratingDate } from "./rating-date";
 
 export interface AdminUserRow {
   userId: string;
@@ -103,6 +104,7 @@ export class DatabaseStorage implements IStorage {
       const people = await tx.select().from(friends).where(eq(friends.userId, insertRecommendation.userId));
       const [item] = await tx.insert(recommendations).values({
         ...insertRecommendation,
+        hotRatedAt: insertRecommendation.hotRating != null ? new Date() : null,
         recommendedBy: insertRecommendation.recommendedBy
           ? resolvePerson(insertRecommendation.recommendedBy, people) : insertRecommendation.recommendedBy,
         watchWith: normalizeWatchWith(insertRecommendation.watchWith, people),
@@ -119,8 +121,13 @@ export class DatabaseStorage implements IStorage {
       const [existing] = await tx.select().from(recommendations).where(eq(recommendations.id, id));
       if (!existing) throw new Error("Title not found");
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`people:${existing.userId}`}))`);
+      const [latest] = await tx.select().from(recommendations).where(eq(recommendations.id, id));
+      if (!latest) throw new Error("Title not found");
       const people = await tx.select().from(friends).where(eq(friends.userId, existing.userId));
-      const normalized = { ...finalUpdates };
+      const normalized: typeof finalUpdates & { hotRatedAt?: Date | null } = { ...finalUpdates };
+      if (updates.hotRating !== undefined) {
+        normalized.hotRatedAt = ratingDate(latest.hotRating, updates.hotRating, latest.hotRatedAt);
+      }
       if (normalized.watchWith !== undefined) normalized.watchWith = normalizeWatchWith(normalized.watchWith, people);
       if (normalized.recommendedBy) normalized.recommendedBy = resolvePerson(normalized.recommendedBy, people);
       const [item] = await tx.update(recommendations).set(normalized).where(eq(recommendations.id, id)).returning();

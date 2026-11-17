@@ -123,9 +123,12 @@ export async function registerRoutes(
   app.get("/api/hotlist", isAuthenticated, async (req, res) => {
     try {
       const result = await pool.query(HOTLIST_QUERY);
-      const rows = result.rows.map((row: any, index: number) => {
+      const rows = result.rows.map((row: any) => {
         return {
-          rank: index + 1,
+          rank: row.section === "ranked" ? Number(row.section_position) : null,
+          section: row.section,
+          datedRatingCount: row.dated_rating_count,
+          lastRatedAt: row.last_rated_at,
           tmdbId: row.tmdb_id,
           title: row.title,
           type: row.type,

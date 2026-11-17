@@ -18,6 +18,7 @@ The displayed Hotlist rating is the arithmetic average:
 
 - A member who has not rated the title is not included in the denominator.
 - Missing ratings are not zero ratings.
+- Member ratings must stay within the 0–5 scale; invalid values are rejected.
 - Each member contributes at most one current rating to a title.
 - Display the number of ratings beside the average, including when it is one.
 - Updating a member's rating replaces their contribution; it does not add a
@@ -53,24 +54,43 @@ The displayed average and the ranking score have different meanings:
 Do not label a weighted score as though it were the arithmetic average.
 More ratings alone must not always beat substantially better ratings.
 
-### Formula still to be specified
+### Initial implementation formula
 
-A Bayesian-style weighted average is a suitable implementation candidate:
+The owner approved gradual time decay. The following are the initial engineering
+settings for the beta, and can be adjusted without changing anyone's actual rating:
 
-`weighted score = (v × R + m × C) ÷ (v + m)`
+- **Half-life:** 30 days.
+- **Participation scale:** 5 ratings.
+- **Eligibility:** at least 2 distinct all-time raters, not 2 within a hard window.
 
-where `R` is the title's average, `v` is its distinct rater count, `C` is the
-community baseline and `m` controls how cautiously small samples are treated.
+For a title with arithmetic average `R` and `v` distinct current raters:
 
-This formula addresses rating confidence only; it is not a complete trending
-formula because it does not include recency.
+```
+participation weight = v / (v + 5)
+rating freshness = 0.5 ^ (age in days / 30)
+title freshness = sum of rating freshness values / v
+trending score = R × participation weight × title freshness
+```
 
-This formula is a **candidate, not an agreed parameter specification**.
-Before implementing, define the baseline population, the value of `m`,
-deterministic tie-breakers and the treatment of a very small or empty community.
-The two-rating eligibility threshold is separate from `m`.
+This is a transparent participation-adjusted score, not a statistical confidence
+interval or a Bayesian average using an assumed community baseline. It replaces
+the earlier Bayesian-style candidate.
 
-## Recency — required; exact method unresolved
+At equal recency, 4.7 from 20 people has a score of 3.76, while 4.8 from 2 has a
+score of approximately 1.37. These are internal ordering scores, **not displayed
+member averages**.
+
+The score is computed at read time. It is not frozen when a title is added or
+rated. If every title's activity ages equally and nobody rates anything new,
+scores fall together and positions may stay the same; the app must not invent
+movement just to make the chart appear active.
+
+Ties are broken by participation-adjusted quality (`R × v / (v + 5)`), then rating
+count, title alphabetically, and catalog ID. Use unrounded values for ordering.
+Return up to 50 titles in each section independently. A large Early ratings
+section must not displace eligible main-chart titles.
+
+## Recency — required, using gradual decay
 
 The owner explicitly confirmed that **recency is a key factor**. It is a
 required part of ranking, not an optional future enhancement. High historical
@@ -79,28 +99,34 @@ ratings and participation alone must not permanently keep a title at the top.
 Ratings plus participation measure community popularity and confidence, but
 do not by themselves measure recent momentum.
 
-A rolling time window or time-decay rule has not been agreed. Do not silently
-invent one or claim that new saves measure changes in rating rank.
+Use the server-recorded time when a member first rates a title or actually
+changes their rating. At 30 days that rating's freshness is 50%, at 60 days 25%,
+and at 90 days 12.5%. There is no hard cutoff.
 
-When implementing recency, specify which event counts (rating submission or
-edit, for example), how old ratings contribute, how elapsed time changes the
-score, and how new ratings affect movement. Also define whether the two-rating
-minimum applies to all-time raters or raters within a recent window.
+Saving an unchanged rating, editing notes, changing status, archiving, or merely
+adding a title to a list must not refresh a rating's date. Clearing a rating
+removes its vote and date. Clients cannot supply their own rating dates.
+Future dates, if encountered, are clamped to age zero rather than given a bonus.
 
 A title's original add date or release date is not a substitute for its rating
 date. Do not treat historical ratings with unknown timestamps as newly submitted
 ratings merely because recency tracking is being introduced.
 
-Gradual time decay is a recommended candidate for the small beta, rather than a
-hard cutoff that can abruptly empty the chart. Its rate has not been agreed.
-The displayed arithmetic average must remain separate from the recency-weighted
+Legacy ratings with unknown dates remain in the displayed average and all-time
+rater count but contribute zero recency weight. Do not backfill their dates
+with the deployment time, add date or watched date. If all rating dates for a
+title are unknown, label that fact and give no recency boost. With no dated
+ratings, use the documented quality tie-breaker and explain this fallback.
+
+The displayed arithmetic average remains separate from the recency-weighted
 ranking score.
 
-## Implementation checkpoint when these rules were recorded
+## Implementation and publishing
 
-The inspected code orders by the arithmetic average, with rating count only
-breaking ties. It does not yet implement weighted ranking, recency, the
-two-rating minimum, or a separate Early ratings section.
+The implementation now includes participation weighting, gradual time decay,
+server-owned rating dates, the two-rating minimum and a separate unnumbered
+Early ratings section. Unrated titles are excluded.
 
-This is a checkpoint, not a permanent status claim. Inspect the current code
-and published app when implementing or verifying these rules.
+Publishing is separate: the schema addition and application changes must be
+published before the live app uses these rules. No saved ratings are rewritten.
+Verify the running app rather than inferring publishing status from this document.

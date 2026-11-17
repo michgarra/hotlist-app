@@ -7,7 +7,10 @@ import { useState } from "react";
 import type { Recommendation } from "@shared/schema";
 
 interface HotlistEntry {
-  rank: number;
+  rank: number | null;
+  section: "ranked" | "early";
+  datedRatingCount: number;
+  lastRatedAt: string | null;
   tmdbId: number;
   title: string;
   type: string;
@@ -43,6 +46,7 @@ function entryToRecommendation(entry: HotlistEntry): Recommendation {
     platform: null,
     notes: null,
     hotRating: null,
+    hotRatedAt: null,
     rtRating: null,
     releaseDate: null,
     runtime: null,
@@ -111,6 +115,9 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
     const matchesGenre = genreFilter === "all" || (e.genre && e.genre.toLowerCase().includes(genreFilter.toLowerCase()));
     return matchesSearch && matchesType && matchesGenre;
   });
+  const mainEntries = filtered.filter(e => e.section === "ranked");
+  const earlyEntries = filtered.filter(e => e.section === "early");
+  const hasDatedMainRatings = mainEntries.some(e => e.datedRatingCount > 0);
 
   if (isLoading) {
     return (
@@ -124,7 +131,8 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
   return (
     <div className="flex flex-col">
       <p className="px-3 py-2 text-xs text-muted-foreground">
-        Ranked by members’ average Hotlist rating out of 5. More ratings break ties.
+        Trending by member ratings, community support and recency. At least 2 ratings are needed to rank.
+        Rating influence halves every 30 days. Scores shown are members’ actual averages out of 5.
       </p>
       {isError && (
         <div role="alert" className="px-3 py-2 text-sm text-muted-foreground">
@@ -136,26 +144,43 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
         <div className="flex flex-col items-center justify-center py-16 text-center px-6">
           <Flame className="w-12 h-12 text-muted-foreground/30 mb-4" />
           <p className="font-medium text-muted-foreground">
-            {entries.length === 0 ? "No community data yet" : "No results"}
+            {isError ? "Rankings unavailable" : entries.length === 0 ? "No member ratings yet" : "No results"}
           </p>
           <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs">
-            {entries.length === 0
-              ? "As members rate titles, the highest-rated will appear first."
+            {isError ? "Try refreshing the rankings."
+              : entries.length === 0
+              ? "Rate titles to help build the community Hotlist."
               : "Try a different search or filter"}
           </p>
         </div>
       ) : (
         <div className="pb-24">
-          {filtered.map((entry) => (
+          {mainEntries.length === 0 && (
+            <p className="px-3 py-4 text-sm text-muted-foreground" data-testid="hotlist-no-ranked">
+              No matching titles have two member ratings yet.
+            </p>
+          )}
+          {mainEntries.length > 0 && !hasDatedMainRatings && (
+            <p className="px-3 py-3 text-xs text-muted-foreground" data-testid="hotlist-undated-notice">
+              These older ratings have no recorded rating dates. They’re ordered by weighted community support until dated ratings arrive.
+            </p>
+          )}
+          {[...mainEntries, ...earlyEntries].map((entry, index) => (
+            <div key={entry.tmdbId}>
+              {entry.section === "early" && index === mainEntries.length && (
+                <div className="px-3 pt-5 pb-2" data-testid="hotlist-early-heading">
+                  <h3 className="text-sm font-semibold">Early ratings</h3>
+                  <p className="text-xs text-muted-foreground">One member has rated each title. They need a second rating to join the main Hotlist.</p>
+                </div>
+              )}
             <div
-              key={entry.tmdbId}
               className="flex items-center gap-3 px-3 py-2.5 border-b border-border/50 last:border-0 cursor-pointer active:bg-muted/40 transition-colors"
               onClick={() => onOpenDetail?.(entryToRecommendation(entry))}
-              data-testid={`hotlist-entry-${entry.rank}`}
+              data-testid={entry.section === "ranked" ? `hotlist-entry-${entry.rank}` : `hotlist-early-${entry.tmdbId}`}
             >
               <div className="flex flex-col items-center w-7 shrink-0">
                 <span className="text-sm font-bold text-foreground leading-none">
-                  {entry.rank}
+                  {entry.rank ?? "—"}
                 </span>
               </div>
 
@@ -173,6 +198,9 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold leading-tight truncate">{entry.title}</p>
+                {entry.datedRatingCount === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Rating dates unavailable · no recency boost</p>
+                )}
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {entry.type}
                   {entry.genre ? ` · ${entry.genre.split(",")[0].trim()}` : ""}
@@ -182,7 +210,7 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
                   <div className="flex items-center gap-1">
                     <Users className="w-3 h-3 text-muted-foreground/60" />
                     <span className="text-xs text-muted-foreground/60">
-                      {entry.userCount} {entry.userCount === 1 ? "person" : "people"}
+                      {entry.userCount} saved
                     </span>
                   </div>
                   {entry.avgHotRating !== null && entry.hotRatingCount > 0 && (
@@ -212,7 +240,7 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
                   addMutation.mutate(entry);
                 }}
                 disabled={addMutation.isPending && addingId === entry.tmdbId}
-                data-testid={`button-add-hotlist-${entry.rank}`}
+                data-testid={entry.section === "ranked" ? `button-add-hotlist-${entry.rank}` : `button-add-hotlist-early-${entry.tmdbId}`}
               >
                 {addMutation.isPending && addingId === entry.tmdbId ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -220,6 +248,7 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
                   <Plus className="w-4 h-4" />
                 )}
               </Button>
+            </div>
             </div>
           ))}
         </div>
