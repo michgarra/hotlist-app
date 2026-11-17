@@ -17,9 +17,9 @@ Use `docs/business-rules/search.md` for the user-defined unified-search behaviou
 
 Use `docs/business-rules/series-and-new-seasons.md` for the series-lifecycle requirements.
 
-**Why:** The user wants weekly metadata refresh, new-season announcements with a date when known, an action to track that season, and a message when it starts airing.
+**Why:** The user wants weekly metadata refresh, new-season announcements with a date when known, an action to track that season, and a message when it starts airing. If an announcement is missed, they want to search, find the series marked Watched, move it back to My List and manually enter the date in details.
 
-**How to apply:** Preserve watched history, distinguish announcements from actual release, and do not treat a duplicate series warning or a season-count increase as a complete new-season experience.
+**How to apply:** Preserve watched history, distinguish announcements from actual release, and do not treat a duplicate series warning or a season-count increase as a complete new-season experience. Never require an automatic announcement before allowing the manual returning-series workflow.
 
 Keep Hotlist ranking rationale in the business-rules folder, not on the user screen.
 

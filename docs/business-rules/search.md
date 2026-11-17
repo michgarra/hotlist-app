@@ -30,6 +30,9 @@
   than silently saying the title was not found.
 - Existing personal-list entries should open their saved record for viewing or
   editing rather than create another copy.
+- A watched TV-series result must offer a route to move the existing series
+  back to My List and enter a date manually in details, even if automatic
+  metadata has not detected its next season.
 - A new catalog title should use the existing add-details flow.
 
 ## Details to settle during the search walkthrough

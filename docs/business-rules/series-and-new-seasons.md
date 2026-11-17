@@ -20,6 +20,11 @@ records or erase watched history.
 - Notify the member when that season starts airing.
 - Identify whether an existing title is in **My List** or **Watched**, rather
   than only saying “already in your list”.
+- Automatic discovery is not a prerequisite: if the member hears about a new
+  season elsewhere, they can search, find the series labelled **Watched**,
+  and move the existing series back to **My List** to track its return.
+- Keep manual date entry in details available for that returning series,
+  including when automatic metadata has not captured the announcement or date.
 
 ## Proposed behaviour for design review
 
@@ -32,6 +37,16 @@ records or erase watched history.
 5. Search and title details should expose the existing saved record and the
    new-season action, rather than dead-end at the duplicate warning.
 6. Movies retain their existing title-level behaviour.
+
+### Manual fallback confirmed during the walkthrough
+
+The member does not have to wait for an announcement alert or for Hotlist to
+recognise a new season. Search → **Watched** result → move to **My List** →
+optionally enter the date in details must remain a complete usable route.
+Move the existing saved series; do not create a second title entry.
+Moving it back must preserve prior watched history, ratings and notes rather
+than imply that earlier viewing never happened. This is a requested workflow,
+not confirmation that the current data model already preserves season history.
 
 These describe the intended outcome; the exact screen layout, season-level
 data model and controls are still to be designed.
