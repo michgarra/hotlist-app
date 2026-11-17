@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
+import { HOTLIST_QUERY } from "./hotlist";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
@@ -119,31 +120,8 @@ export async function registerRoutes(
 
   app.get("/api/hotlist", isAuthenticated, async (req, res) => {
     try {
-      const result = await pool.query(`
-        SELECT
-          tmdb_id,
-          MAX(title) AS title,
-          MAX(type) AS type,
-          MAX(genre) AS genre,
-          MAX(poster_url) AS poster_url,
-          MAX(imdb_rating) AS imdb_rating,
-          MAX(rt_rating) AS rt_rating,
-          MAX(overview) AS overview,
-          COUNT(DISTINCT user_id)::int AS user_count,
-          COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int AS recent_count,
-          COUNT(CASE WHEN created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days' THEN 1 END)::int AS prev_count,
-          ROUND(AVG(hot_rating) FILTER (WHERE hot_rating IS NOT NULL)::numeric, 1) AS avg_hot_rating,
-          COUNT(hot_rating) FILTER (WHERE hot_rating IS NOT NULL)::int AS hot_rating_count
-        FROM recommendations
-        WHERE tmdb_id IS NOT NULL
-        GROUP BY tmdb_id
-        ORDER BY user_count DESC, recent_count DESC
-        LIMIT 50
-      `);
+      const result = await pool.query(HOTLIST_QUERY);
       const rows = result.rows.map((row: any, index: number) => {
-        let trend: "up" | "down" | "stable" = "stable";
-        if (row.recent_count > row.prev_count) trend = "up";
-        else if (row.recent_count < row.prev_count) trend = "down";
         return {
           rank: index + 1,
           tmdbId: row.tmdb_id,
@@ -155,9 +133,8 @@ export async function registerRoutes(
           rtRating: row.rt_rating,
           overview: row.overview,
           userCount: row.user_count,
-          avgHotRating: row.avg_hot_rating ? Number(row.avg_hot_rating) : null,
+          avgHotRating: row.avg_hot_rating !== null ? Number(row.avg_hot_rating) : null,
           hotRatingCount: row.hot_rating_count || 0,
-          trend,
         };
       });
       res.json(rows);

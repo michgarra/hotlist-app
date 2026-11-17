@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, Minus, Users, Plus, Loader2, Flame } from "lucide-react";
+import { Users, Plus, Loader2, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +18,6 @@ interface HotlistEntry {
   userCount: number;
   avgHotRating: number | null;
   hotRatingCount: number;
-  trend: "up" | "down" | "stable";
 }
 
 interface HotlistChartProps {
@@ -63,20 +62,15 @@ function entryToRecommendation(entry: HotlistEntry): Recommendation {
   };
 }
 
-function TrendIcon({ trend }: { trend: HotlistEntry["trend"] }) {
-  if (trend === "up") return <TrendingUp className="w-4 h-4 text-green-500" />;
-  if (trend === "down") return <TrendingDown className="w-4 h-4 text-red-500" />;
-  return <Minus className="w-4 h-4 text-muted-foreground/40" />;
-}
-
 export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: HotlistChartProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addingId, setAddingId] = useState<number | null>(null);
 
-  const { data: entries = [], isLoading } = useQuery<HotlistEntry[]>({
+  const { data: entries = [], isLoading, isError, refetch } = useQuery<HotlistEntry[]>({
     queryKey: ["/api/hotlist"],
-    staleTime: 5 * 60 * 1000, // re-fetch at most every 5 minutes
+    staleTime: 0,
+    refetchInterval: 30 * 1000,
     refetchOnWindowFocus: true,
   });
 
@@ -129,6 +123,15 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
 
   return (
     <div className="flex flex-col">
+      <p className="px-3 py-2 text-xs text-muted-foreground">
+        Ranked by members’ average Hotlist rating out of 5. More ratings break ties.
+      </p>
+      {isError && (
+        <div role="alert" className="px-3 py-2 text-sm text-muted-foreground">
+          Couldn’t refresh the rankings. {entries.length > 0 && "Showing the last loaded results. "}
+          <Button variant="ghost" onClick={() => refetch()}>Try again</Button>
+        </div>
+      )}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-6">
           <Flame className="w-12 h-12 text-muted-foreground/30 mb-4" />
@@ -137,7 +140,7 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
           </p>
           <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs">
             {entries.length === 0
-              ? "As users add titles, they'll appear here ranked by popularity"
+              ? "As members rate titles, the highest-rated will appear first."
               : "Try a different search or filter"}
           </p>
         </div>
@@ -154,7 +157,6 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
                 <span className="text-sm font-bold text-foreground leading-none">
                   {entry.rank}
                 </span>
-                <TrendIcon trend={entry.trend} />
               </div>
 
               {entry.posterUrl ? (
@@ -188,13 +190,14 @@ export function HotlistChart({ search, typeFilter, genreFilter, onOpenDetail }: 
                       <Flame className="w-3 h-3 text-primary" />
                       <span className="text-xs font-medium text-primary">
                         {entry.avgHotRating.toFixed(1)}
-                        {entry.hotRatingCount > 1 && (
-                          <span className="text-muted-foreground font-normal ml-0.5">
-                            ({entry.hotRatingCount})
-                          </span>
-                        )}
+                        <span className="text-muted-foreground font-normal ml-0.5">
+                          ({entry.hotRatingCount} {entry.hotRatingCount === 1 ? "rating" : "ratings"})
+                        </span>
                       </span>
                     </div>
+                  )}
+                  {entry.avgHotRating === null && (
+                    <span className="text-xs text-muted-foreground">Not rated yet</span>
                   )}
                 </div>
               </div>
