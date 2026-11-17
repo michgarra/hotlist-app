@@ -11,6 +11,8 @@ when the owner changes a rule, and consult it before changing related features.
   Friends, Watch With and confirmed nicknames.
 - [Unified search](search.md): one TMDB title/actor search with personal-list
   and community-chart membership labels.
+- [Series and new seasons](series-and-new-seasons.md): metadata refresh,
+  announcements, release alerts and preserving watched-season history.
 
 ## How to use these documents
 

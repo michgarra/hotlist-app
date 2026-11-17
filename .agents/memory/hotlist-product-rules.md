@@ -15,6 +15,12 @@ Use `docs/business-rules/search.md` for the user-defined unified-search behaviou
 
 **How to apply:** Treat discovery and existing-list lookup as one search experience. Do not assume that a working Add Title endpoint resolves the separate main-search problem.
 
+Use `docs/business-rules/series-and-new-seasons.md` for the series-lifecycle requirements.
+
+**Why:** The user wants weekly metadata refresh, new-season announcements with a date when known, an action to track that season, and a message when it starts airing.
+
+**How to apply:** Preserve watched history, distinguish announcements from actual release, and do not treat a duplicate series warning or a season-count increase as a complete new-season experience.
+
 Keep Hotlist ranking rationale in the business-rules folder, not on the user screen.
 
 **Why:** The user explicitly objected to unrequested ranking explanations and rating-date notices on the Hotlist screen and asked to remove them.

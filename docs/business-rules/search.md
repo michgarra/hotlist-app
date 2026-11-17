@@ -15,6 +15,9 @@
   things. A title can be Watched and also in the Hotlist; labels are not
   mutually exclusive.
 - Search must respect the existing no-duplicate-title rule.
+- For a saved TV series, identify its actual list and provide a path to track
+  an upcoming season rather than stop at a generic duplicate warning. See
+  [series and new seasons](series-and-new-seasons.md).
 - Keep internal search/ranking explanations out of the user screen unless requested.
 
 ## Implementation requirements to preserve this behaviour
