@@ -27,6 +27,12 @@ Use `docs/business-rules/series-and-new-seasons.md` for the series-lifecycle req
 
 **How to apply:** Preserve watched history, distinguish announcements from actual release, and do not treat a duplicate series warning or a season-count increase as a complete new-season experience. Never require an automatic announcement before allowing the manual returning-series workflow.
 
+Keep season updates collapsed on Watched, never above My List, the community chart or search results.
+
+**Why:** The user reported that unrequested season-alert cards filled every tab before typing and pushed the desired Black Doves search result down the screen.
+
+**How to apply:** Keep alerts separate from discovery results. Do not automatically expand them or obstruct the main list/search workflow.
+
 Do not promise unattended weekly season checks from an autoscaling web-service timer.
 
 **Why:** The server can sleep; automatic discovery on opening Hotlist is not the same as a guaranteed scheduled background job. TMDB premiere dates also do not prove Australian streaming availability.

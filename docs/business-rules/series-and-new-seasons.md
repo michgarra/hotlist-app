@@ -92,6 +92,12 @@ Implemented in development, pending republish:
   event identities and durable, account-scoped dismissal. A date change does
   not create another announcement. An airing event is distinct from its
   announcement.
+- Keep season alerts out of My List, the community Hotlist and all search
+  results. Offer a collapsed **Season updates** control on Watched only;
+  expand alerts only when the member requests them, with bounded scrolling.
+  Starting a search or leaving Watched hides/unmounts that control so it is
+  collapsed when returning. Unrelated alerts must never push a searched title
+  down the screen.
 - Shared TMDB season metadata is refreshed when seven days old. Known premiere
   dates trigger revalidation on or after the date, without waiting another
   week. Specials are excluded. A manually entered date alone is not evidence

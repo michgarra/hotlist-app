@@ -710,14 +710,18 @@ export default function Dashboard() {
           )}
         </div>
 
-        {seriesAlertsError && (
-          <div className="mx-3 mb-2 flex items-center justify-between gap-2 rounded-lg border p-3 text-xs" role="alert">
-            <span>Season announcements couldn’t be checked.</span>
-            <Button size="sm" variant="outline" onClick={() => retrySeriesAlerts()}>Try again</Button>
-          </div>
-        )}
-        {seriesAlerts.length > 0 && (
-          <section className="mx-3 mb-2 space-y-1.5" aria-label="Series alerts" data-testid="series-alerts">
+        {activeTab === "watched" && !search.trim() && (seriesAlerts.length > 0 || seriesAlertsError) && (
+          <details className="mx-3 mb-2 rounded-lg border" data-testid="series-updates">
+            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-primary">
+              Season updates{seriesAlerts.length > 0 ? ` (${seriesAlerts.length})` : ""}
+            </summary>
+            <section className="max-h-[40dvh] space-y-1.5 overflow-y-auto overscroll-contain px-2 pb-2" aria-label="Series alerts" data-testid="series-alerts">
+              {seriesAlertsError && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border p-3 text-xs" role="alert">
+                  <span>Season announcements couldn’t be checked.</span>
+                  <Button size="sm" variant="outline" onClick={() => retrySeriesAlerts()}>Try again</Button>
+                </div>
+              )}
             {seriesAlerts.map(alert => {
               const savedSeries = serverItems.find(item => item.id === alert.recommendationId);
               const dateText = alert.date
@@ -753,7 +757,8 @@ export default function Dashboard() {
                 </div>
               );
             })}
-          </section>
+            </section>
+          </details>
         )}
 
         {debouncedSearch.length >= 2 ? (
