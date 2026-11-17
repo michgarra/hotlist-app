@@ -3,11 +3,17 @@ name: Hotlist product priorities
 description: User-defined meaning of the aggregated Hotlist and the pre-mobile quality priority.
 ---
 
-Consult `docs/business-rules/` before changing Hotlist ranking or people/duplicate behaviour. These documents are the canonical agreed business rules.
+Consult `docs/business-rules/` before changing Hotlist ranking, search or people/duplicate behaviour. These documents are the canonical agreed business rules.
 
 **Why:** The user explicitly asked to keep the business rules in a folder for later reference. They preferred community-supported weighted ranking over ordering purely by average and approved gradual time decay as the required recency mechanism.
 
 **How to apply:** Read the relevant rule, distinguish agreed policy from implemented/published behaviour, and update it when the owner changes direction. Do not fall back to the superseded average-only ranking decision.
+
+Use `docs/business-rules/search.md` for the user-defined unified-search behaviour.
+
+**Why:** The user wants the default My List search bar to search TMDB by title or actor and identify My List, Hotlist and Watched membership, rather than require a different search task in each tab.
+
+**How to apply:** Treat discovery and existing-list lookup as one search experience. Do not assume that a working Add Title endpoint resolves the separate main-search problem.
 
 Keep Hotlist ranking rationale in the business-rules folder, not on the user screen.
 

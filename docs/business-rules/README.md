@@ -9,6 +9,8 @@ when the owner changes a rule, and consult it before changing related features.
   minimum rating count and the distinction between average and ranking score.
 - [People and duplicate prevention](people-and-duplicates.md): titles,
   Friends, Watch With and confirmed nicknames.
+- [Unified search](search.md): one TMDB title/actor search with personal-list
+  and community-chart membership labels.
 
 ## How to use these documents
 
