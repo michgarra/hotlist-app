@@ -63,6 +63,9 @@ function entryToRecommendation(entry: HotlistEntry): Recommendation {
     archived: false,
     createdAt: null,
     watchedAt: null,
+    nextSeasonDate: null,
+    seriesHistory: [],
+    dismissedSeriesAlerts: [],
   };
 }
 

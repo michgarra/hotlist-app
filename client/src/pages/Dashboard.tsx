@@ -19,6 +19,7 @@ import { TitleCard } from "@/components/TitleCard";
 import { AddTitleSheet } from "@/components/AddTitleSheet";
 import { HotRatingDialog } from "@/components/HotRatingDialog";
 import { DetailModal } from "@/components/DetailModal";
+import { SearchResults, type CatalogResult } from "@/components/SearchResults";
 import { HotlistChart } from "@/components/HotlistChart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +27,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check, UserPlus, CheckSquare } from "lucide-react";
-import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
+import { useFriends, useCreateFriend, useSeriesAlerts, useDismissSeriesAlert } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
 import { MergePeopleForm } from "@/components/MergePeopleForm";
 import { personKey, watchWithNames } from "@shared/people";
 import { apiRequest } from "@/lib/queryClient";
 import flameLogo from "@/assets/flame-logo.png";
 import type { Recommendation, Friend } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 type ActiveTab = "mylist" | "hotlist" | "watched";
 
@@ -70,7 +72,7 @@ function getPlatforms(platform: string | null): string[] {
 const EMPTY_RECOMMENDATIONS: Recommendation[] = [];
 
 export default function Dashboard() {
-  const { data: serverItems = EMPTY_RECOMMENDATIONS, isLoading } = useRecommendations() as { data: Recommendation[], isLoading: boolean };
+  const { data: serverItems = EMPTY_RECOMMENDATIONS, isLoading, isError: savedItemsError, refetch: refetchSaved } = useRecommendations() as { data: Recommendation[], isLoading: boolean, isError: boolean, refetch: () => void };
   const updateMutation = useUpdateRecommendation();
   const deleteMutation = useDeleteRecommendation();
   const { user, logout } = useAuth();
@@ -99,6 +101,8 @@ export default function Dashboard() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [initialSearchResult, setInitialSearchResult] = useState<CatalogResult | null>(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [genreFilter, setGenreFilter] = useState("all");
   const [platformFilter, setPlatformFilter] = useState("all");
@@ -120,10 +124,26 @@ export default function Dashboard() {
     else if (profile?.preferredRating === "imdb") setRatingDisplay("imdb");
   }, [profile?.preferredRating]);
   const [activeTab, setActiveTab] = useState<ActiveTab>("mylist");
+  const { data: seriesAlerts = [], isError: seriesAlertsError, refetch: retrySeriesAlerts } = useSeriesAlerts();
+  const dismissSeriesAlert = useDismissSeriesAlert();
+  const { toast } = useToast();
+  const { data: hotlistEntries = [] } = useQuery<Array<{ tmdbId: number; type: string; section: "ranked" | "early"; rank: number | null; avgHotRating?: number | null; hotRatingCount?: number }>>({
+    queryKey: ["/api/hotlist"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/hotlist");
+      return response.json();
+    },
+    enabled: search.trim().length >= 2,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const switchTab = (tab: ActiveTab) => {
     setActiveTab(tab);
-    setSearch("");
     setTypeFilter("all");
     setGenreFilter("all");
     setPlatformFilter("all");
@@ -690,7 +710,68 @@ export default function Dashboard() {
           )}
         </div>
 
-        {activeTab === "hotlist" ? (
+        {seriesAlertsError && (
+          <div className="mx-3 mb-2 flex items-center justify-between gap-2 rounded-lg border p-3 text-xs" role="alert">
+            <span>Season announcements couldn’t be checked.</span>
+            <Button size="sm" variant="outline" onClick={() => retrySeriesAlerts()}>Try again</Button>
+          </div>
+        )}
+        {seriesAlerts.length > 0 && (
+          <section className="mx-3 mb-2 space-y-1.5" aria-label="Series alerts" data-testid="series-alerts">
+            {seriesAlerts.map(alert => {
+              const savedSeries = serverItems.find(item => item.id === alert.recommendationId);
+              const dateText = alert.date
+                ? new Date(`${alert.date.slice(0, 10)}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+                : "date to be confirmed";
+              return (
+                <div key={alert.id} className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2" data-testid={`series-alert-${alert.id}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold">{alert.title} · Season {alert.season} {alert.kind === "airing" ? "is airing" : "announced"}</p>
+                    <p className="text-[11px] text-muted-foreground">{alert.kind === "airing" ? "Now airing" : dateText}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 shrink-0 px-2 text-xs"
+                    onClick={() => {
+                      if (savedSeries) setDetailItem(savedSeries);
+                      else toast({ title: "Series unavailable", description: "This saved title could not be found.", variant: "destructive" });
+                    }}
+                    data-testid={`button-view-series-alert-${alert.id}`}
+                  >
+                    View series
+                  </Button>
+                  <button
+                    type="button"
+                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label={`Dismiss alert for ${alert.title}`}
+                    onClick={() => dismissSeriesAlert.mutate(alert.id, { onError: () => toast({ title: "Could not dismiss alert", description: "Try again.", variant: "destructive" }) })}
+                    data-testid={`button-dismiss-series-alert-${alert.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {debouncedSearch.length >= 2 ? (
+          <SearchResults
+            query={debouncedSearch}
+            typeFilter={typeFilter}
+            saved={serverItems}
+            savedLoading={isLoading}
+            savedError={savedItemsError}
+            community={hotlistEntries}
+            onRetrySaved={() => refetchSaved()}
+            onOpenSaved={setDetailItem}
+            onOpenNew={(result) => {
+              setInitialSearchResult(result);
+              setIsAddOpen(true);
+            }}
+          />
+        ) : activeTab === "hotlist" ? (
           <HotlistChart search={search} typeFilter={typeFilter} genreFilter={genreFilter} onOpenDetail={setDetailItem} />
         ) : (
           <div className="flex-1 px-3 pb-24 space-y-1.5" data-testid="list-recommendations">
@@ -811,12 +892,15 @@ export default function Dashboard() {
           if (!open) {
             setIsAddOpen(false);
             setEditItem(null);
+            setInitialSearchResult(null);
           } else {
             setIsAddOpen(true);
           }
         }}
         editItem={editItem}
         defaultStatus={activeTab === "watched" ? "Watched" : undefined}
+        initialResult={initialSearchResult}
+        onOpenExisting={(item) => setDetailItem(item)}
       />
       <HotRatingDialog
         item={hotRatingItem}
@@ -825,7 +909,9 @@ export default function Dashboard() {
         onSubmit={handleHotRatingSubmit}
       />
       <DetailModal
-        item={detailItem}
+        item={detailItem ? serverItems.find(item => detailItem.userId
+          ? item.id === detailItem.id
+          : item.tmdbId === detailItem.tmdbId && item.type === detailItem.type) ?? detailItem : null}
         open={!!detailItem}
         onOpenChange={(open) => !open && setDetailItem(null)}
         onEdit={(item) => {

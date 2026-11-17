@@ -31,6 +31,7 @@ export function useCreateRecommendation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/series-alerts"] });
     },
   });
 }
@@ -51,6 +52,7 @@ export function useUpdateRecommendation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/series-alerts"] });
     },
   });
 }
@@ -66,6 +68,7 @@ export function useDeleteRecommendation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/hotlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/series-alerts"] });
     },
   });
 }
@@ -103,16 +106,55 @@ export function useCreateFriend() {
 export function useTmdbSearch(query: string) {
   return useQuery({
     queryKey: ["/api/tmdb/search", query],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!query || query.length < 2) return [];
-      const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(query)}`, { signal, credentials: "include" });
       if (res.status === 401) {
         dispatchSessionExpired();
-        return [];
       }
-      if (!res.ok) return [];
+      await throwIfResNotOk(res);
       return res.json();
     },
     enabled: query.length >= 2,
+  });
+}
+
+export interface SeriesAlert {
+  id: string;
+  recommendationId: number;
+  title: string;
+  kind: "announced" | "airing";
+  season: number;
+  date: string | null;
+}
+
+export function useSeriesAlerts() {
+  const { isAuthenticated } = useAuth();
+  return useQuery<SeriesAlert[]>({
+    queryKey: ["/api/series-alerts"],
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60_000,
+    retry: 1,
+  });
+}
+
+export function useDismissSeriesAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch("/api/series-alerts/dismiss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id }),
+      });
+      await throwIfResNotOk(res);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/series-alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recommendations"] });
+    },
   });
 }

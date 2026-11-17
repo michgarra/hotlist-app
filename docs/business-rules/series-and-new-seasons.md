@@ -78,9 +78,38 @@ data model and controls are still to be designed.
 
 ## Investigation checkpoint
 
-The existing app has a manual new-season check that compares season counts.
-That is not equivalent to weekly background metadata refresh, announcement
-tracking, scheduled release notifications or season-level watch history.
+Implemented in development, pending republish:
 
-This document captures the walkthrough. No series or notification behaviour
-has been changed yet.
+- Watched TV-series details offer Move to My List, keeping the same saved
+  title, notes, rating and review. The prior watched date, rating, review and
+  recorded season count are retained in a watched-history snapshot. This
+  preserves existing viewing records; it does not invent a per-season history
+  for old entries that never recorded one.
+- A separate editable Next season date leaves the original series premiere
+  date unchanged. It is optional; tracking does not require TMDB to recognise
+  an announcement first.
+- In-app series announcements and airing alerts have stable per-title/season/
+  event identities and durable, account-scoped dismissal. A date change does
+  not create another announcement. An airing event is distinct from its
+  announcement.
+- Shared TMDB season metadata is refreshed when seven days old. Known premiere
+  dates trigger revalidation on or after the date, without waiting another
+  week. Specials are excluded. A manually entered date alone is not evidence
+  that the season has actually aired.
+- Checks run when the app opens/refetches alerts, at service startup, and every
+  six hours while the server is awake. Failed metadata fetches preserve the
+  cached snapshot; an unverified release is not described as airing.
+
+### Explicit delivery limits
+
+- Alerts are inside Hotlist, not SMS, email or push notifications.
+- The current autoscaling deployment can sleep. Timers inside that service
+  do not guarantee a weekly run while nobody visits. An independently scheduled
+  job or always-on service is still needed for guaranteed unattended checks;
+  the app catches up when opened. No deployment target was changed.
+- Dates describe TMDB's season premiere, evaluated on the Australia/Sydney
+  calendar, not a promise of availability on an Australian streaming service.
+- The existing saved season count is the conservative baseline for old watched
+  entries. Missing historical metadata cannot prove exactly which seasons a
+  member finished.
+- A renewal with no season record in TMDB cannot be discovered by this source.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Star, Flame, Clock, Tv, Film, Pencil, X, RefreshCw, MonitorPlay, Play, 
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Recommendation } from "@shared/schema";
+import { useUpdateRecommendation } from "@/hooks/use-recommendations";
+import { useToast } from "@/hooks/use-toast";
 
 interface DetailModalProps {
   item: Recommendation | null;
@@ -62,6 +64,14 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
   const [refreshing, setRefreshing] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [nextSeasonDate, setNextSeasonDate] = useState("");
+  const updateRecommendation = useUpdateRecommendation();
+  const { toast } = useToast();
+  const seriesData = item;
+
+  useEffect(() => {
+    setNextSeasonDate(seriesData?.nextSeasonDate?.slice(0, 10) || "");
+  }, [item?.id]);
 
   const { data: extras } = useQuery<TmdbExtras>({
     queryKey: ["/api/tmdb", item?.tmdbId, item?.type, "extras"],
@@ -96,7 +106,18 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
     setRefreshing(false);
   };
 
+  const updateSeries = async (updates: Record<string, unknown>, success: string) => {
+    if (!item) return;
+    try {
+      await updateRecommendation.mutateAsync({ id: item.id, ...updates } as any);
+      toast({ title: success });
+    } catch (error: any) {
+      toast({ title: "Could not update title", description: error?.message || "Try again.", variant: "destructive" });
+    }
+  };
+
   if (!item) return null;
+  const isSaved = !!item.userId;
 
   const castList = item.cast ? item.cast.split(",").map(c => c.trim()).filter(Boolean) : [];
   const userTags = item.watchTags ? item.watchTags.split(",").map(t => t.trim()).filter(Boolean) : [];
@@ -216,6 +237,53 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
         )}
 
         <div className="p-5 space-y-5">
+
+          <section className="rounded-lg border bg-muted/25 p-3" data-testid="detail-list-status">
+            <p className="text-xs text-muted-foreground">Current list</p>
+            <p className="mt-0.5 text-sm font-semibold">{!isSaved ? "Community Hotlist" : item.archived ? "Archived" : item.status === "Watched" ? "Watched" : "My List"}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {isSaved && item.status === "Watched" && item.type === "TV Show" && (
+                <Button size="sm" onClick={() => updateSeries({ status: "Want to Watch", archived: false }, "Moved to My List")} disabled={updateRecommendation.isPending} data-testid="button-move-series-to-my-list">
+                  Move to My List
+                </Button>
+              )}
+              {isSaved && !item.archived && item.status !== "Watched" && (
+                <>
+                  <Button size="sm" variant={item.status === "Interested" ? "default" : "outline"} onClick={() => updateSeries({ status: item.status === "Interested" ? "Want to Watch" : "Interested" }, item.status === "Interested" ? "Priority cleared" : "Marked Hot")} disabled={updateRecommendation.isPending} data-testid="button-detail-hot">Hot</Button>
+                  <Button size="sm" variant={item.status === "Watch Soon" ? "default" : "outline"} onClick={() => updateSeries({ status: item.status === "Watch Soon" ? "Want to Watch" : "Watch Soon" }, item.status === "Watch Soon" ? "Priority cleared" : "Marked Watch Soon")} disabled={updateRecommendation.isPending} data-testid="button-detail-watch-soon">Watch Soon</Button>
+                </>
+              )}
+            </div>
+          </section>
+
+          {isSaved && item.type === "TV Show" && (
+            <section className="space-y-2" data-testid="detail-next-season">
+              <label htmlFor="input-next-season-date" className="block text-xs font-semibold text-muted-foreground">Next season date</label>
+              <div className="flex gap-2">
+                <input
+                  id="input-next-season-date"
+                  type="date"
+                  value={nextSeasonDate}
+                  onChange={(event) => setNextSeasonDate(event.target.value)}
+                  className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                  data-testid="input-next-season-date"
+                />
+                <Button size="sm" variant="outline" onClick={() => updateSeries({ nextSeasonDate: nextSeasonDate || null }, "Season date saved")} disabled={updateRecommendation.isPending} data-testid="button-save-next-season-date">Save</Button>
+              </div>
+              {seriesData?.seriesHistory && seriesData.seriesHistory.length > 0 && (
+                <div className="pt-1" data-testid="detail-series-history">
+                  <p className="mb-1 text-xs font-semibold text-muted-foreground">Watched history</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {seriesData.seriesHistory.map((entry, index) => (
+                      <span key={`${entry.watchedAt}-${index}`} className="rounded-full bg-muted px-2.5 py-1 text-xs">
+                        Previously watched{entry.watchedAt ? ` · ${new Date(entry.watchedAt).toLocaleDateString()}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Ratings row */}
           <div className="flex items-center gap-5 flex-wrap">
@@ -409,7 +477,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
 
           {/* Action buttons */}
           <div className="flex gap-2 pt-1">
-            {item.tmdbId && (
+            {isSaved && item.tmdbId && (
               <Button
                 variant="outline"
                 size="sm"
@@ -422,7 +490,7 @@ export function DetailModal({ item, open, onOpenChange, onEdit }: DetailModalPro
                 {refreshed ? "Updated!" : refreshing ? "Refreshing…" : "Refresh Metadata"}
               </Button>
             )}
-            {onEdit && (
+            {isSaved && onEdit && (
               <Button
                 variant="outline"
                 size="sm"

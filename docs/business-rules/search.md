@@ -51,8 +51,9 @@
 - Personal Hot/Watch Soon priority is separate from the community Hotlist
   ranking; this action must not change the community ranking rules.
 
-This priority behaviour is an agreed requirement from the walkthrough, not
-confirmation that it has been implemented.
+Implemented in development: selecting Hot or Watch Soon persists a move to the
+top; unrelated titles retain their relative order. Clearing either selected tag
+does not automatically demote the title.
 
 ## Details to settle during the search walkthrough
 
@@ -65,16 +66,23 @@ confirmation that it has been implemented.
 
 ## Investigation checkpoint
 
-The main Dashboard search currently filters saved records within its selected
-tab. Add Title separately calls TMDB. These are two different search tasks,
-which does not match the agreed direction above.
+The main Dashboard search now calls TMDB across all three tabs and retains the
+query when changing tabs. It merges saved title/cast/director matches that are
+missing from the catalog result, labels saved-list and community-chart
+membership, and routes saved results to their existing details.
+New results open Add Details directly. Add Title also identifies the actual
+saved list and opens the saved record instead of presenting a dead-end duplicate.
+Provider failures show retry controls; saved matches remain accessible when
+TMDB is unavailable. Movie/TV identity is preserved across both paths.
 
 The development TMDB search endpoint returned Black Doves as a TV Show with
 TMDB ID 225385 during investigation. This confirms that the development backend
 can find it; it does not establish why the user could not find it in the
 published Add Title screen. That path still needs reproduction.
 
-No unified-search implementation has been applied as part of recording these rules.
+These changes require republishing to reach the live app. The development
+endpoint finding Black Doves does not retrospectively diagnose the original
+published search failure.
 
 ### History check
 

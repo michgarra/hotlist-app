@@ -101,6 +101,14 @@ export class DatabaseStorage implements IStorage {
   async createRecommendation(insertRecommendation: InsertRecommendation & { userId: string }): Promise<Recommendation> {
     return db.transaction(async tx => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`people:${insertRecommendation.userId}`}))`);
+      const [duplicate] = await tx.select().from(recommendations).where(and(
+        eq(recommendations.userId, insertRecommendation.userId),
+        eq(recommendations.type, insertRecommendation.type),
+        sql`((${insertRecommendation.tmdbId ?? null}::integer IS NOT NULL AND ${recommendations.tmdbId} = ${insertRecommendation.tmdbId ?? null})
+          OR ((${insertRecommendation.tmdbId ?? null}::integer IS NULL OR ${recommendations.tmdbId} IS NULL)
+            AND lower(trim(${recommendations.title})) = lower(trim(${insertRecommendation.title}))))`,
+      )).limit(1);
+      if (duplicate) throw Object.assign(new Error("Already saved"), { status: 409, existing: duplicate });
       const people = await tx.select().from(friends).where(eq(friends.userId, insertRecommendation.userId));
       const [item] = await tx.insert(recommendations).values({
         ...insertRecommendation,
@@ -114,9 +122,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation> {
-    const finalUpdates = updates.status === "Watched"
-      ? { ...updates, sortOrder: null, watchedAt: new Date() }
-      : updates;
     return db.transaction(async tx => {
       const [existing] = await tx.select().from(recommendations).where(eq(recommendations.id, id));
       if (!existing) throw new Error("Title not found");
@@ -124,7 +129,33 @@ export class DatabaseStorage implements IStorage {
       const [latest] = await tx.select().from(recommendations).where(eq(recommendations.id, id));
       if (!latest) throw new Error("Title not found");
       const people = await tx.select().from(friends).where(eq(friends.userId, existing.userId));
-      const normalized: typeof finalUpdates & { hotRatedAt?: Date | null } = { ...finalUpdates };
+      const normalized: Partial<typeof recommendations.$inferInsert> = { ...updates };
+      if (updates.status === "Watched" && latest.status !== "Watched") {
+        normalized.watchedAt = new Date();
+        normalized.sortOrder = null;
+      }
+      if (latest.type === "TV Show" && latest.status === "Watched" && updates.status && updates.status !== "Watched") {
+        normalized.seriesHistory = [...latest.seriesHistory, {
+          watchedAt: (latest.watchedAt || latest.createdAt || new Date()).toISOString(),
+          seasons: latest.lastKnownSeasons ?? latest.seasons,
+          rating: latest.hotRating,
+          review: latest.watchReview,
+        }];
+      }
+      if (updates.status === "Interested" || updates.status === "Watch Soon" ||
+        (latest.status === "Watched" && updates.status && updates.status !== "Watched")) {
+        // Materialise the existing order before prepending: NULL sort keys
+        // otherwise outrank every numeric key and undo the priority action.
+        const ordered = await tx.select({ id: recommendations.id }).from(recommendations)
+          .where(and(eq(recommendations.userId, latest.userId), sql`${recommendations.id} <> ${id}`,
+            sql`${recommendations.status} <> 'Watched'`, sql`${recommendations.archived} IS NOT TRUE`))
+          .orderBy(sql`${recommendations.sortOrder} ASC NULLS FIRST`,
+            sql`${recommendations.watchedAt} DESC NULLS LAST`, desc(recommendations.createdAt));
+        for (let index = 0; index < ordered.length; index++) {
+          await tx.update(recommendations).set({ sortOrder: index + 1 }).where(eq(recommendations.id, ordered[index].id));
+        }
+        normalized.sortOrder = 0;
+      }
       if (updates.hotRating !== undefined) {
         normalized.hotRatedAt = ratingDate(latest.hotRating, updates.hotRating, latest.hotRatedAt);
       }
@@ -142,14 +173,15 @@ export class DatabaseStorage implements IStorage {
   async findDuplicateRecommendation(userId: string, title: string, type: string, tmdbId?: number | null): Promise<Recommendation | undefined> {
     if (tmdbId) {
       const [item] = await db.select().from(recommendations)
-        .where(and(eq(recommendations.userId, userId), eq(recommendations.tmdbId, tmdbId)));
+        .where(and(eq(recommendations.userId, userId), eq(recommendations.tmdbId, tmdbId), eq(recommendations.type, type)));
       if (item) return item;
     }
     const [item] = await db.select().from(recommendations)
       .where(and(
         eq(recommendations.userId, userId),
-        ilike(recommendations.title, title),
-        eq(recommendations.type, type)
+        sql`lower(trim(${recommendations.title})) = lower(trim(${title}))`,
+        eq(recommendations.type, type),
+        ...(tmdbId ? [sql`${recommendations.tmdbId} IS NULL`] : []),
       ));
     return item;
   }

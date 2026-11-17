@@ -27,6 +27,12 @@ Use `docs/business-rules/series-and-new-seasons.md` for the series-lifecycle req
 
 **How to apply:** Preserve watched history, distinguish announcements from actual release, and do not treat a duplicate series warning or a season-count increase as a complete new-season experience. Never require an automatic announcement before allowing the manual returning-series workflow.
 
+Do not promise unattended weekly season checks from an autoscaling web-service timer.
+
+**Why:** The server can sleep; automatic discovery on opening Hotlist is not the same as a guaranteed scheduled background job. TMDB premiere dates also do not prove Australian streaming availability.
+
+**How to apply:** Be explicit about in-app versus external notifications and scheduled-service requirements. Never infer completed individual seasons from a catalog season count.
+
 Keep Hotlist ranking rationale in the business-rules folder, not on the user screen.
 
 **Why:** The user explicitly objected to unrequested ranking explanations and rating-date notices on the Hotlist screen and asked to remove them.

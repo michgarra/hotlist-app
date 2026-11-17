@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, real, varchar, index, uuid, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, varchar, index, uuid, boolean, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -80,6 +80,9 @@ export const recommendations = pgTable("recommendations", {
   archived: boolean("archived").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   watchedAt: timestamp("watched_at"),
+  nextSeasonDate: text("next_season_date"),
+  seriesHistory: jsonb("series_history").$type<{ watchedAt: string; seasons: number | null; rating: number | null; review: string | null }[]>().notNull().default([]),
+  dismissedSeriesAlerts: text("dismissed_series_alerts").array().notNull().default(sql`'{}'::text[]`),
 }, (table) => [
   index("recommendations_user_id_idx").on(table.userId),
 ]);
@@ -98,8 +101,20 @@ export const insertRecommendationSchema = createInsertSchema(recommendations).om
   userId: true,
   createdAt: true,
   hotRatedAt: true,
+  seriesHistory: true,
+  dismissedSeriesAlerts: true,
 }).extend({
   hotRating: z.number().min(0).max(5).nullable().optional(),
+  nextSeasonDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }, "Enter a valid date").nullable().optional(),
+});
+
+export const seriesCatalog = pgTable("series_catalog", {
+  tmdbId: integer("tmdb_id").primaryKey(),
+  seasons: jsonb("seasons").$type<{ season: number; date: string | null }[]>().notNull().default([]),
+  checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type Recommendation = typeof recommendations.$inferSelect;

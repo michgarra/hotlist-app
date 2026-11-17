@@ -94,8 +94,13 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
         const credits = [...castCredits, ...crewCredits]
           .sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
         // Dedupe by id within this person's credits
-        const seen = new Set<number>();
-        return credits.filter((c: any) => seen.has(c.id) ? false : (seen.add(c.id), true)).slice(0, 15);
+        const seen = new Set<string>();
+        return credits.filter((c: any) => {
+          const key = `${c.media_type}:${c.id}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).slice(0, 15);
       } catch {
         return p.known_for || [];
       }
@@ -120,9 +125,10 @@ export async function searchTmdb(query: string): Promise<TmdbSearchResult[]> {
   // above unrelated filmography entries from a person hit (Chuck Norris).
   const allItems = [...titleResults];
   if (personCredits.length > 0) {
-    const seenIds = new Set(titleResults.map(r => r.id));
+    const seenIds = new Set(titleResults.map(r => `${r.type}:${r.id}`));
     for (const r of personCredits) {
-      if (!seenIds.has(r.id)) { seenIds.add(r.id); allItems.push(r); }
+      const key = `${r.type}:${r.id}`;
+      if (!seenIds.has(key)) { seenIds.add(key); allItems.push(r); }
     }
   }
 
@@ -199,15 +205,19 @@ function matchScore(title: string, originalQuery: string): number {
 /** Smart multi-variant search: runs article/keyword variants in parallel, merges & ranks results */
 export async function smartSearch(query: string): Promise<TmdbSearchResult[]> {
   const variants = buildQueryVariants(query);
-  const allResults = await Promise.all(variants.map(v => searchTmdb(v)));
+  const settled = await Promise.allSettled(variants.map(v => searchTmdb(v)));
+  const successful = settled.filter((r): r is PromiseFulfilledResult<TmdbSearchResult[]> => r.status === "fulfilled");
+  if (!successful.length) throw new Error("TMDB search is temporarily unavailable. Please try again.");
+  const allResults = successful.map(r => r.value);
 
   // Merge, deduplicating by TMDB id — first occurrence wins (primary query first)
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const merged: TmdbSearchResult[] = [];
   for (const results of allResults) {
     for (const r of results) {
-      if (!seen.has(r.id)) {
-        seen.add(r.id);
+      const key = `${r.type}:${r.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
         merged.push(r);
       }
     }

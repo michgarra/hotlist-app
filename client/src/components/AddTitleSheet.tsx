@@ -9,12 +9,15 @@ import { useTmdbSearch, useRecommendations, useCreateRecommendation, useUpdateRe
 import { useToast } from "@/hooks/use-toast";
 import type { Recommendation } from "@shared/schema";
 import { personKey, watchWithNames } from "@shared/people";
+import type { CatalogResult } from "@/components/SearchResults";
 
 interface AddTitleSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editItem?: Recommendation | null;
   defaultStatus?: string;
+  initialResult?: CatalogResult | null;
+  onOpenExisting?: (item: Recommendation) => void;
 }
 
 interface TmdbResult {
@@ -27,7 +30,7 @@ interface TmdbResult {
   rating: number;
 }
 
-export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: AddTitleSheetProps) {
+export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus, initialResult, onOpenExisting }: AddTitleSheetProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<TmdbResult | null>(null);
@@ -44,6 +47,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
   const searchInputRef = useRef<HTMLInputElement>(null);
   const watchWithInputRef = useRef<HTMLInputElement>(null);
   const detailsScrollRef = useRef<HTMLDivElement>(null);
+  const handledInitialResult = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -79,7 +83,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
     return () => clearTimeout(timer);
   }, [open, selectedItem]);
 
-  const { data: searchResults = [], isLoading: isSearching } = useTmdbSearch(debouncedQuery);
+  const { data: searchResults = [], isLoading: isSearching, isError: searchError, refetch: retrySearch } = useTmdbSearch(debouncedQuery);
   const { data: allRecommendations = [] } = useRecommendations();
   const createMutation = useCreateRecommendation();
   const updateMutation = useUpdateRecommendation();
@@ -142,6 +146,12 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
   }, [searchQuery]);
 
   const handleSelectResult = useCallback(async (result: TmdbResult) => {
+    const existing = (allRecommendations as Recommendation[]).find(item => item.tmdbId === result.id && item.type === result.type);
+    if (existing) {
+      onOpenExisting?.(existing);
+      onOpenChange(false);
+      return;
+    }
     // Dismiss keyboard immediately so the sheet expands to full height
     // before showing the details view — otherwise iOS keeps the keyboard
     // open and the poster/title area is hidden above the visible area
@@ -159,7 +169,19 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
       }
     } catch {}
     setIsFetchingDetails(false);
-  }, []);
+  }, [allRecommendations, onOpenExisting, onOpenChange]);
+
+  useEffect(() => {
+    if (!open || !initialResult || editItem) {
+      if (!initialResult || !open) handledInitialResult.current = null;
+      return;
+    }
+    const key = `${initialResult.type}-${initialResult.id}`;
+    if (handledInitialResult.current !== key) {
+      handledInitialResult.current = key;
+      handleSelectResult(initialResult);
+    }
+  }, [open, initialResult, editItem, handleSelectResult]);
 
   const handleAddFriend = async () => {
     const trimmed = newFriendName.trim();
@@ -181,7 +203,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
       const payload = {
         title: selectedItem.title,
         type: selectedItem.type,
-        genre: details.genres ? (Array.isArray(details.genres) ? details.genres.join(", ") : details.genres) : null,
+        genre: details.genres ? (Array.isArray(details.genres) ? details.genres.join(", ") : details.genres) : editItem?.genre ?? null,
         recommendedBy: recommendedBy || null,
         platform: platform || details.platform || null,
         status: isEditing ? editItem!.status : (() => {
@@ -197,12 +219,12 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
         imdbRating: details.imdbRating || selectedItem.rating || null,
         overview: details.overview || selectedItem.overview || null,
         releaseDate: details.releaseDate || selectedItem.releaseDate || null,
-        runtime: details.runtime || null,
-        seasons: details.seasons || null,
-        episodes: details.episodes || null,
-        cast: details.cast ? (Array.isArray(details.cast) ? details.cast.join(", ") : details.cast) : null,
-        director: details.director || null,
-        censorRating: details.censorRating || null,
+        runtime: details.runtime ?? editItem?.runtime ?? null,
+        seasons: details.seasons ?? editItem?.seasons ?? null,
+        episodes: details.episodes ?? editItem?.episodes ?? null,
+        cast: details.cast ? (Array.isArray(details.cast) ? details.cast.join(", ") : details.cast) : editItem?.cast ?? null,
+        director: details.director ?? editItem?.director ?? null,
+        censorRating: details.censorRating ?? editItem?.censorRating ?? null,
         hotRating: isEditing && editItem!.hotRating != null ? hotRating : null,
       };
 
@@ -298,11 +320,18 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                   </div>
                 )}
 
-                {!isSearching && searchResults.length > 0 && (
+                {searchError && (
+                  <div className="py-8 text-center" role="alert">
+                    <p className="text-sm text-muted-foreground">Search couldn’t load.</p>
+                    <Button variant="outline" size="sm" className="mt-3" onClick={() => retrySearch()}>Try again</Button>
+                  </div>
+                )}
+
+                {!isSearching && !searchError && searchResults.length > 0 && (
                   <div className="space-y-1">
                     {(searchResults as TmdbResult[]).map((result) => (
                       <button
-                        key={result.id}
+                        key={`${result.type}:${result.id}`}
                         className="w-full flex gap-3 p-2 rounded-md hover:bg-accent text-left transition-colors active:bg-accent/80"
                         onClick={() => handleSelectResult(result)}
                         data-testid={`search-result-${result.id}`}
@@ -323,6 +352,15 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                           </p>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-[11px] text-muted-foreground uppercase font-medium">{result.type === "Movie" ? "Film" : "TV"}</span>
+                            {(allRecommendations as Recommendation[]).some(item => item.tmdbId === result.id && item.type === result.type) && (
+                              <span className="text-[10px] font-medium text-primary">
+                                {(allRecommendations as Recommendation[]).find(item => item.tmdbId === result.id && item.type === result.type)?.archived
+                                  ? "Archived"
+                                  : (allRecommendations as Recommendation[]).find(item => item.tmdbId === result.id && item.type === result.type)?.status === "Watched"
+                                  ? "Watched"
+                                  : "My List"}
+                              </span>
+                            )}
                             {result.rating > 0 && (
                               <span className="flex items-center gap-0.5 text-[11px]">
                                 <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
@@ -336,7 +374,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
                   </div>
                 )}
 
-                {!isSearching && debouncedQuery.length >= 2 && searchResults.length === 0 && (
+                {!isSearching && !searchError && debouncedQuery.length >= 2 && searchResults.length === 0 && (
                   <p className="text-center text-sm text-muted-foreground py-10">No results found</p>
                 )}
 

@@ -12,6 +12,7 @@ import { smartSearch, getTmdbDetails, getTmdbSeasonCount } from "./tmdb";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import path from "path";
 import fs from "fs";
+import { getSeriesAlerts, dismissSeriesAlert } from "./series";
 
 function getUserId(req: any): string {
   return req.user?.claims?.sub;
@@ -34,6 +35,20 @@ export async function registerRoutes(
 
   await setupAuth(app);
   registerAuthRoutes(app);
+
+  app.get("/api/series-alerts", isAuthenticated, async (req, res, next) => {
+    try { res.json(await getSeriesAlerts(getUserId(req))); } catch (error) { next(error); }
+  });
+  app.post("/api/series-alerts/dismiss", isAuthenticated, async (req, res, next) => {
+    try {
+      const { id } = z.object({ id: z.string().regex(/^\d+:\d+:(announced|airing)$/) }).parse(req.body);
+      await dismissSeriesAlert(getUserId(req), id);
+      res.sendStatus(204);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid alert" });
+      next(error);
+    }
+  });
 
   // Lightweight health check — used by keepalive self-ping to prevent idle termination
   app.get("/api/health", (_req, res) => {
@@ -182,7 +197,7 @@ export async function registerRoutes(
 
       const duplicate = await storage.findDuplicateRecommendation(userId, parsed.title, parsed.type, parsed.tmdbId);
       if (duplicate) {
-        return res.status(409).json({ message: `"${parsed.title}" is already in your list`, existing: duplicate });
+        return res.status(409).json({ message: `"${parsed.title}" is already in ${duplicate.archived ? "your Archive" : duplicate.status === "Watched" ? "Watched" : "My List"}`, existing: duplicate });
       }
 
       const item = await storage.createRecommendation({ ...parsed, userId });
@@ -201,6 +216,13 @@ export async function registerRoutes(
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join(".") });
+      }
+      if ((err as any).status === 409 && (err as any).existing) {
+        const existing = (err as any).existing;
+        return res.status(409).json({
+          message: `"${existing.title}" is already in ${existing.archived ? "your Archive" : existing.status === "Watched" ? "Watched" : "My List"}`,
+          existing,
+        });
       }
       throw err;
     }
