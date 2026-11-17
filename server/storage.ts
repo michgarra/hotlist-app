@@ -13,6 +13,9 @@ import {
   type InsertFriend,
 } from "@shared/schema";
 import { eq, desc, ilike, and, asc, sql } from "drizzle-orm";
+import { normalizeWatchWith, resolvePerson } from "../shared/people";
+import { pool } from "./db";
+import { PeopleRepository } from "./people";
 
 export interface AdminUserRow {
   userId: string;
@@ -60,7 +63,7 @@ export interface IStorage {
   updateUserProfile(id: number, updates: Partial<InsertUserProfile> & { userId: string }): Promise<UserProfile>;
   getFriends(userId: string): Promise<Friend[]>;
   createFriend(friend: InsertFriend & { userId: string }): Promise<Friend>;
-  deleteFriend(id: number): Promise<void>;
+  deleteFriend(id: number, userId: string): Promise<void>;
   findFriendByName(userId: string, name: string): Promise<Friend | undefined>;
   getPopularTags(tmdbIds: number[]): Promise<Record<number, string[]>>;
   getCommunityData(tmdbId: number): Promise<{ tags: { tag: string; count: number }[]; reviews: { text: string; author: string }[] }>;
@@ -95,23 +98,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRecommendation(insertRecommendation: InsertRecommendation & { userId: string }): Promise<Recommendation> {
-    const [item] = await db
-      .insert(recommendations)
-      .values(insertRecommendation)
-      .returning();
-    return item;
+    return db.transaction(async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`people:${insertRecommendation.userId}`}))`);
+      const people = await tx.select().from(friends).where(eq(friends.userId, insertRecommendation.userId));
+      const [item] = await tx.insert(recommendations).values({
+        ...insertRecommendation,
+        recommendedBy: insertRecommendation.recommendedBy
+          ? resolvePerson(insertRecommendation.recommendedBy, people) : insertRecommendation.recommendedBy,
+        watchWith: normalizeWatchWith(insertRecommendation.watchWith, people),
+      }).returning();
+      return item;
+    });
   }
 
   async updateRecommendation(id: number, updates: UpdateRecommendationRequest): Promise<Recommendation> {
     const finalUpdates = updates.status === "Watched"
       ? { ...updates, sortOrder: null, watchedAt: new Date() }
       : updates;
-    const [item] = await db
-      .update(recommendations)
-      .set(finalUpdates)
-      .where(eq(recommendations.id, id))
-      .returning();
-    return item;
+    return db.transaction(async tx => {
+      const [existing] = await tx.select().from(recommendations).where(eq(recommendations.id, id));
+      if (!existing) throw new Error("Title not found");
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`people:${existing.userId}`}))`);
+      const people = await tx.select().from(friends).where(eq(friends.userId, existing.userId));
+      const normalized = { ...finalUpdates };
+      if (normalized.watchWith !== undefined) normalized.watchWith = normalizeWatchWith(normalized.watchWith, people);
+      if (normalized.recommendedBy) normalized.recommendedBy = resolvePerson(normalized.recommendedBy, people);
+      const [item] = await tx.update(recommendations).set(normalized).where(eq(recommendations.id, id)).returning();
+      return item;
+    });
   }
 
   async deleteRecommendation(id: number): Promise<void> {
@@ -173,12 +187,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFriend(friend: InsertFriend & { userId: string }): Promise<Friend> {
-    const [item] = await db.insert(friends).values(friend).returning();
-    return item;
+    return new PeopleRepository(pool).create(friend.userId, friend.name);
   }
 
-  async deleteFriend(id: number): Promise<void> {
-    await db.delete(friends).where(eq(friends.id, id));
+  async deleteFriend(id: number, userId: string): Promise<void> {
+    await db.delete(friends).where(and(eq(friends.id, id), eq(friends.userId, userId)));
   }
 
   async findFriendByName(userId: string, name: string): Promise<Friend | undefined> {

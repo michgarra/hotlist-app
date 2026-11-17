@@ -3,6 +3,8 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
 import { HOTLIST_QUERY } from "./hotlist";
+import { PeopleRepository } from "./people";
+import { cleanPersonName, personKey } from "@shared/people";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertUserProfileSchema, insertFriendSchema } from "@shared/schema";
@@ -261,11 +263,8 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const parsed = insertFriendSchema.parse(req.body);
-      const existing = await storage.findFriendByName(userId, parsed.name.trim());
-      if (existing) {
-        return res.status(409).json({ message: "Friend already exists", friend: existing });
-      }
-      const friend = await storage.createFriend({ ...parsed, name: parsed.name.trim(), userId });
+      if (!cleanPersonName(parsed.name)) return res.status(400).json({ message: "Enter a name" });
+      const friend = await storage.createFriend({ ...parsed, userId });
       res.status(201).json(friend);
     } catch (err: any) {
       if (err instanceof z.ZodError) {
@@ -276,8 +275,28 @@ export async function registerRoutes(
   });
 
   app.delete("/api/friends/:id", isAuthenticated, async (req, res) => {
-    await storage.deleteFriend(Number(req.params.id));
+    await storage.deleteFriend(Number(req.params.id), getUserId(req));
     res.status(204).send();
+  });
+
+  app.post("/api/people/merge", isAuthenticated, async (req, res, next) => {
+    try {
+      const name = z.string().max(100).transform(cleanPersonName).pipe(z.string().min(1));
+      const input = z.object({
+        preferredName: name,
+        aliases: z.array(name).min(1).max(20),
+        preview: z.boolean(),
+      }).refine(input => input.aliases.some(alias => personKey(alias) !== personKey(input.preferredName)), {
+        message: "Enter another name for the same person",
+      }).parse(req.body);
+      const result = await new PeopleRepository(pool).merge(
+        getUserId(req), input.preferredName, input.aliases, input.preview
+      );
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: error.errors[0].message });
+      next(error);
+    }
   });
 
   app.get(api.tmdb.search.path, async (req, res) => {

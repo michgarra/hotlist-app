@@ -32,6 +32,7 @@ export const friends = pgTable("friends", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),
   name: text("name").notNull(),
+  aliases: text("aliases").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("friends_user_id_idx").on(table.userId),
@@ -41,6 +42,7 @@ export const insertFriendSchema = createInsertSchema(friends).omit({
   id: true,
   userId: true,
   createdAt: true,
+  aliases: true,
 });
 
 export type Friend = typeof friends.$inferSelect;

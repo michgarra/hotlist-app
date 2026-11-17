@@ -8,6 +8,7 @@ import { Search, Loader2, Film, Tv, Star, Plus, ArrowLeft, UserPlus, Flame } fro
 import { useTmdbSearch, useRecommendations, useCreateRecommendation, useUpdateRecommendation, useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useToast } from "@/hooks/use-toast";
 import type { Recommendation } from "@shared/schema";
+import { personKey, watchWithNames } from "@shared/people";
 
 interface AddTitleSheetProps {
   open: boolean;
@@ -88,39 +89,37 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
 
   // Unique Watch With names from all existing titles — used for autocomplete
   const allWatchWithNames = useMemo(() => {
-    const names = new Set<string>();
+    const names = new Map<string, string>();
+    const people = friendsList as { name: string; aliases?: string[] }[];
     (allRecommendations as any[]).forEach(r => {
-      if (r.watchWith) {
-        r.watchWith.split(",").map((n: string) => n.trim()).filter(Boolean).forEach((n: string) => names.add(n));
-      }
+      watchWithNames(r.watchWith, people).forEach(n => names.set(personKey(n), n));
     });
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [allRecommendations]);
+    return Array.from(names.values()).sort((a, b) => a.localeCompare(b));
+  }, [allRecommendations, friendsList]);
 
   // Suggestions: names that start with current input and aren't already selected
   const watchWithSuggestions = useMemo(() => {
-    const q = watchWithInput.trim().toLowerCase();
+    const q = personKey(watchWithInput);
     if (!q) return [];
     return allWatchWithNames.filter(n =>
-      n.toLowerCase().startsWith(q) &&
-      !watchWith.some(w => w.toLowerCase() === n.toLowerCase())
+      (personKey(n).startsWith(q) || (friendsList as { name: string; aliases?: string[] }[]).some(p =>
+        personKey(p.name) === personKey(n) && p.aliases?.some(a => personKey(a).startsWith(q))
+      )) &&
+      !watchWith.some(w => personKey(w) === personKey(n))
     );
-  }, [watchWithInput, allWatchWithNames, watchWith]);
+  }, [watchWithInput, allWatchWithNames, watchWith, friendsList]);
 
   const addWatchWithName = useCallback((name: string) => {
-    const trimmed = name.trim().replace(/,$/, "");
-    if (trimmed && !watchWith.some(n => n.toLowerCase() === trimmed.toLowerCase())) {
-      setWatchWith(prev => [...prev, trimmed]);
-    }
+    setWatchWith(prev => watchWithNames([...prev, name].join(", "), friendsList as any[]));
     setWatchWithInput("");
-  }, [watchWith]);
+  }, [friendsList]);
 
   const isEditing = !!editItem;
 
   useEffect(() => {
     if (editItem && open) {
       setRecommendedBy(editItem.recommendedBy || "");
-      setWatchWith(editItem.watchWith ? editItem.watchWith.split(",").map((w: string) => w.trim()).filter(Boolean) : []);
+      setWatchWith(watchWithNames(editItem.watchWith, friendsList as any[]));
       setWatchWithInput("");
       setNotes(editItem.notes || "");
       setPlatform(editItem.platform || "");
@@ -166,8 +165,8 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
     const trimmed = newFriendName.trim();
     if (!trimmed) return;
     try {
-      await createFriendMutation.mutateAsync(trimmed);
-      setRecommendedBy(trimmed);
+      const friend = await createFriendMutation.mutateAsync(trimmed);
+      setRecommendedBy(friend.name);
       setNewFriendName("");
       setShowAddFriend(false);
     } catch {
@@ -191,7 +190,7 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
           if (rd && new Date(rd + "T00:00:00") > new Date()) return "Coming Soon";
           return "Want to Watch";
         })(),
-        watchWith: watchWith.length > 0 ? watchWith.join(", ") : null,
+        watchWith: watchWithNames([...watchWith, watchWithInput].join(", "), friendsList as any[]).join(", ") || null,
         notes: notes || null,
         tmdbId: selectedItem.id || null,
         posterUrl: details.posterUrl || selectedItem.posterUrl || null,
@@ -239,7 +238,9 @@ export function AddTitleSheet({ open, onOpenChange, editItem, defaultStatus }: A
     onOpenChange(open);
   };
 
-  const friends = (friendsList as any[]) || [];
+  const friends = ((friendsList as any[]) || []).filter((friend, index, all) =>
+    all.findIndex(p => personKey(p.name) === personKey(friend.name)) === index
+  );
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>

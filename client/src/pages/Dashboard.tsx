@@ -28,6 +28,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Flame, Plus, Search, Filter, Loader2, LogOut, Users, X, Trash2, Settings, Link2, Share2, Check, UserPlus, CheckSquare } from "lucide-react";
 import { useFriends, useCreateFriend } from "@/hooks/use-recommendations";
 import { useAuth } from "@/hooks/use-auth";
+import { MergePeopleForm } from "@/components/MergePeopleForm";
+import { personKey, watchWithNames } from "@shared/people";
 import { apiRequest } from "@/lib/queryClient";
 import flameLogo from "@/assets/flame-logo.png";
 import type { Recommendation, Friend } from "@shared/schema";
@@ -338,17 +340,17 @@ export default function Dashboard() {
     const seen = new Map<string, string>();
     serverItems.forEach((i: Recommendation) => {
       if (i.watchWith) {
-        i.watchWith.split(",").forEach((name) => {
+        watchWithNames(i.watchWith, friendsList).forEach((name) => {
           const trimmed = name.trim();
           if (trimmed) {
-            const key = trimmed.toLowerCase();
+            const key = personKey(trimmed);
             if (!seen.has(key)) seen.set(key, trimmed);
           }
         });
       }
     });
     return Array.from(seen.values()).sort();
-  }, [serverItems]);
+  }, [serverItems, friendsList]);
 
   const applyFilters = (list: Recommendation[]) => list.filter((item: Recommendation) => {
     const matchesSearch = !search || (() => {
@@ -367,7 +369,7 @@ export default function Dashboard() {
     const matchesFriend = friendFilter === "all" || item.recommendedBy === friendFilter;
     const matchesHotRating = hotRatingFilter === "all" || (item.hotRating && item.hotRating >= Number(hotRatingFilter));
     const matchesWatching = watchingFilter === "all" || (watchingFilter === "watching" && item.status === "Watching") || (watchingFilter === "hot" && item.status === "Interested") || (watchingFilter === "watch-soon" && item.status === "Watch Soon");
-    const matchesWatchWith = watchWithFilter === "all" || (item.watchWith && item.watchWith.split(",").map(n => n.trim().toLowerCase()).includes(watchWithFilter.toLowerCase()));
+    const matchesWatchWith = watchWithFilter === "all" || watchWithNames(item.watchWith, friendsList).some(n => personKey(n) === personKey(watchWithFilter));
     return matchesSearch && matchesType && matchesGenre && matchesPlatform && matchesFriend && matchesHotRating && matchesWatching && matchesWatchWith;
   });
 
@@ -843,6 +845,7 @@ export default function Dashboard() {
             </div>
 
             {/* Add friend */}
+            <MergePeopleForm />
             <form
               className="flex gap-2 mb-3"
               onSubmit={(e) => {
@@ -880,14 +883,14 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 min-h-0">
               {friendsList.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-no-friends">No friends added yet</p>
               ) : (
                 <ul className="space-y-0.5">
                   {friendsList
                     .filter((f: Friend, idx: number, arr: Friend[]) =>
-                      arr.findIndex(x => x.name.trim().toLowerCase() === f.name.trim().toLowerCase()) === idx
+                      arr.findIndex(x => personKey(x.name) === personKey(f.name)) === idx
                     )
                     .filter((f: Friend) => !friendSearch || f.name.toLowerCase().includes(friendSearch.toLowerCase()))
                     .map((f: Friend) => {
